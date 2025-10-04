@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pronóstico Climático Futuro</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <div class="header-content">
+                <svg class="cloud-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                width="30">
+                    <path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"></path>
+                </svg>
+                <h1>Pronóstico Climático Futuro</h1>
+            </div>
+            <p class="subtitle">Consulta datos climáticos futuros por ubicación o coordenadas</p>
+        </header>
+
+        <div class="tabs">
+            <div class="tabs-list">
+                <button class="tab-trigger active" data-tab="location">Ciudad / País</button>
+                <button class="tab-trigger" data-tab="coordinates">Coordenadas</button>
+            </div>
+
+            <div class="tab-content active" id="location-tab">
+                <form class="search-form" id="location-form">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="city">Ciudad</label>
+                            <input type="text" id="city" placeholder="Ej: Nueva York" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="country">País</label>
+                            <input type="text" id="country" placeholder="Ej: Estados Unidos" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="date">Fecha</label>
+                            <input type="date" id="date" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="time">Hora</label>
+                            <input type="time" id="time" required>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn-primary">Buscar Pronóstico</button>
+                </form>
+            </div>
+
+            <div class="tab-content" id="coordinates-tab">
+                <form class="search-form" id="coordinates-form">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="latitude">Latitud</label>
+                            <input type="number" id="latitude" step="0.0001" placeholder="Ej: 40.7128" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="longitude">Longitud</label>
+                            <input type="number" id="longitude" step="0.0001" placeholder="Ej: -74.0060" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="date-coords">Fecha</label>
+                            <input type="date" id="date-coords" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="time-coords">Hora</label>
+                            <input type="time" id="time-coords" required>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn-primary">Buscar Pronóstico</button>
+                </form>
+            </div>
+        </div>
+
+        <div id="results" class="results hidden">
+            <div class="results-header">
+                <div>
+                    <h2 id="location-name"></h2>
+                    <p id="datetime"></p>
+                </div>
+                <div class="temperature-display">
+                    <span id="temperature"></span>
+                </div>
+            </div>
+
+            <div id="events-container" class="events-container hidden"></div>
+
+            <div class="metrics-grid" id="metrics-grid"></div>
+
+            <div class="map-section">
+                <h3>Visualización del Mapa</h3>
+                <div class="map-controls">
+                    <button class="map-btn active" data-layer="precipitation">Precipitaciones</button>
+                    <button class="map-btn" data-layer="temperature">Temperatura</button>
+                    <button class="map-btn" data-layer="wind">Viento</button>
+                    <button class="map-btn" data-layer="severe">Condiciones Severas</button>
+                </div>
+                <div class="map-container">
+                    <canvas id="map-canvas"></canvas>
+                    <div class="map-marker">
+                        <div class="marker-pin"></div>
+                        <div class="marker-label" id="marker-location"></div>
+                        <div class="marker-temp" id="marker-temp"></div>
+                    </div>
+                    <div class="map-legend" id="map-legend"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

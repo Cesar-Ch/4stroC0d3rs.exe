@@ -94,7 +94,7 @@ h1 {
 .search-form {
   max-width: 48rem;
   margin: 0 auto;
-  background: #1a1a1a;
+  color: #1a1a1a;
   padding: 2rem;
   border-radius: 0.75rem;
   border: 1px solid #2a2a2a;
@@ -116,27 +116,27 @@ h1 {
 label {
   font-size: 0.875rem;
   font-weight: 500;
-  color: #e5e5e5;
+  color: #0a0a0a;
 }
 
 input {
   padding: 0.75rem;
-  background: #0a0a0a;
+  color: #0a0a0a;
   border: 1px solid #2a2a2a;
   border-radius: 0.375rem;
-  color: #e5e5e5;
+  color: #0a0a0a;
   font-size: 0.875rem;
 }
 
 input:focus {
   outline: none;
-  border-color: #3b82f6;
+  border-color: #0a0a0a;
 }
 
 .btn-primary {
   width: 100%;
   padding: 0.875rem;
-  background: #3b82f6;
+  background: #0a0a0a;
   color: #fff;
   border: none;
   border-radius: 0.375rem;
@@ -147,7 +147,7 @@ input:focus {
 }
 
 .btn-primary:hover {
-  background: #2563eb;
+  background: #2b2b2b;
 }
 
 .results {

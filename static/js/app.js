@@ -311,11 +311,11 @@ selectLocationBtn.addEventListener('click', () => {
 
 
 // -----------------------------------------------------------------------------------
-// 🎯 LÓGICA DEL FORMULARIO UNIFICADO (REEMPLAZO DE location-form y coordinates-form) 🎯
+// 🎯 LÓGICA DEL FORMULARIO UNIFICADO (Uso de FETCH para comunicarse con Flask) 🎯
 // -----------------------------------------------------------------------------------
 
 document.getElementById("weather-form").addEventListener("submit", async (e) => {
-  e.preventDefault()
+  e.preventDefault() // Evita el envío tradicional y permite a JS tomar el control.
 
   const city = cityInput.value.trim()
   const country = countryInput.value.trim()
@@ -373,23 +373,49 @@ document.getElementById("weather-form").addEventListener("submit", async (e) => 
     return;
   }
   
-  // 4. (SIMULACIÓN DE BÚSQUEDA)
-  console.log(`Buscando pronóstico para: ${locationName}`);
-  console.log(`Coordenadas: ${finalLat}, ${finalLon}`);
-  console.log(`Fecha/Hora: ${date} a las ${time}`);
+  // 4. Lógica de Envío (Reemplaza la Simulación)
   
-  // MOCK DATA: Usamos la estructura de mock data existente, pero inyectamos
-  // los datos de ubicación y tiempo obtenidos del formulario para que se muestren
-  const mockDataToSend = {
-    ...currentWeatherData,
-    location: locationName, 
-    date: date,
-    time: time,
-    coordinates: { lat: finalLat, lon: finalLon },
-  };
+  const formData = new FormData();
+  // Los datos clave que Flask necesita
+  formData.append('date', date);
+  formData.append('time', time);
+  formData.append('latitude', finalLat); 
+  formData.append('longitude', finalLon); 
+  formData.append('location_name', locationName); // Envía el nombre de ubicación procesado
+
+  try {
+      // Llamada asíncrona a la ruta de Flask
+      const response = await fetch('/procesar', {
+          method: 'POST',
+          body: new URLSearchParams(formData) // Envía como formulario estándar
+      });
+
+      if (!response.ok) {
+          // Manejo de errores de HTTP
+          throw new Error(`Error en la respuesta del servidor: ${response.status}`);
+      }
+
+      // La respuesta de Flask (solo para confirmación o para datos reales a futuro)
+      const serverMessage = await response.json(); 
+      console.log("Respuesta del servidor Flask:", serverMessage);
+      
+      // MOCK DATA: Mantenemos el mock para la visualización, inyectando
+      // los datos de ubicación y tiempo obtenidos del formulario.
+      const mockDataToSend = {
+        ...currentWeatherData,
+        location: locationName, 
+        date: date,
+        time: time,
+        coordinates: { lat: finalLat, lon: finalLon },
+      };
 
 
-  displayResults(mockDataToSend)
+      displayResults(mockDataToSend)
+  } catch (error) {
+    console.error('Error al enviar datos al servidor:', error);
+    alert('Ocurrió un error al buscar el pronóstico. Verifica que el servidor Flask esté corriendo y la ruta /procesar sea accesible.');
+  }
+
 })
 
 // -----------------------------------------------------------------------------------

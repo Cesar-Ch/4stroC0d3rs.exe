@@ -61,6 +61,9 @@ def get_merra2_data(url, output_dir='data', lon_idx=0, lat_idx=0, time_idx=0, fe
             'SLP': float(ds.variables['SLP'][time_idx, lat_idx, lon_idx]),
             'U2M': float(ds.variables['U2M'][time_idx, lat_idx, lon_idx]),
             'V2M': float(ds.variables['V2M'][time_idx, lat_idx, lon_idx]),
+            'CLDTMP': float(ds.variables['CLDTMP'][time_idx, lat_idx, lon_idx]),
+            'TQI': float(ds.variables['TQI'][time_idx, lat_idx, lon_idx]),
+            'TQL': float(ds.variables['TQL'][time_idx, lat_idx, lon_idx]),
         }
 
         print(
@@ -69,7 +72,10 @@ def get_merra2_data(url, output_dir='data', lon_idx=0, lat_idx=0, time_idx=0, fe
             data['QV2M'],
             data['SLP'],
             data['U2M'],
-            data['V2M']
+            data['V2M'],
+            data['CLDTMP'],
+            data['TQI'],
+            data['TQL'],
         )
 
         ds.close()

@@ -42,6 +42,15 @@ document.querySelectorAll(".tab-trigger").forEach((trigger) => {
   })
 })
 
+//Para el reloj, hora fija
+
+  const timeInput = document.getElementById("time");
+  timeInput.addEventListener("change", () => {
+    const [hours] = timeInput.value.split(":");
+    timeInput.value = `${hours.padStart(2, "0")}:00`;
+  });
+
+
 //Map
 
 // 1. Obtener elementos del DOM

@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -9,10 +10,18 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 </head>
+
 <body>
     <div class="language-switcher" id="lang-switcher">
         <button class="language-btn" id="lang-btn">
-            🌐 Idioma
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                style="vertical-align: middle;">
+                <circle cx="12" cy="12" r="10"></circle>
+                <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z">
+                </path>
+                <line x1="2.1" y1="12" x2="21.9" y2="12"></line>
+            </svg> Idioma
         </button>
         <div class="language-menu" id="lang-menu">
             <!-- Botones para idioma -->
@@ -24,7 +33,7 @@
         <header class="header">
             <div class="header-content">
                 <svg class="cloud-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                width="30">
+                    width="30">
                     <path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"></path>
                 </svg>
                 <h1>Pronóstico Climático Futuro</h1>
@@ -53,9 +62,13 @@
                         <div class="form-group">
                             <label for="mapa-btn">Elegir en Mapa</label>
                             <button type="button" id="mapa-btn" class="btn-primary map-picker-btn">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle;">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
+                                    fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                    stroke-linejoin="round" style="vertical-align: middle;">
                                     <circle cx="12" cy="12" r="10"></circle>
-                                    <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+                                    <path
+                                        d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z">
+                                    </path>
                                     <line x1="2.1" y1="12" x2="21.9" y2="12"></line>
                                 </svg>
                             </button>
@@ -67,16 +80,17 @@
                     <div class="form-grid">
                         <div class="form-group">
                             <label for="latitude">Latitud</label>
-                            <input type="number" id="latitude" name="latitude" step="0.001" placeholder="Ej: 40.7128"> 
+                            <input type="number" id="latitude" name="latitude" step="0.001" placeholder="Ej: 40.7128">
                         </div>
                         <div class="form-group">
                             <label for="longitude">Longitud</label>
-                            <input type="number" id="longitude" name="longitude" step="0.001" placeholder="Ej: -74.0060">
+                            <input type="number" id="longitude" name="longitude" step="0.001"
+                                placeholder="Ej: -74.0060">
                         </div>
                     </div>
                 </div>
 
-                <div class="form-grid date-time-grid"> 
+                <div class="form-grid date-time-grid">
                     <div class="form-group">
                         <label for="date">Fecha</label>
                         <input type="date" id="date" name="date" required>
@@ -106,10 +120,10 @@
 
             <div class="metrics-grid" id="metrics-grid"></div>
 
-           
+
         </div>
     </div>
-    
+
     <div id="map-modal" class="modal">
         <div class="modal-content">
             <span class="close-btn">&times;</span>
@@ -123,4 +137,5 @@
 
     <script src="{{ url_for('static', filename='js/app.js') }}"></script>
 </body>
+
 </html>

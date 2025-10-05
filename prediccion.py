@@ -3,6 +3,7 @@ from sklearn.linear_model import LinearRegression
 from data import get_merra2_data
 from datetime import date, timedelta
 from datauv import get_uv_data
+from datavis import get_vis_data
 
 
 # --- Conversión de coordenadas geográficas a índices MERRA2 ---
@@ -55,6 +56,8 @@ def predecir_clima(lat, lon, hora=12, año=2025, fecha_pred=None):
 
         url_uv = f"""https://acdisc.gesdisc.eosdis.nasa.gov/opendap/HDF-EOS5/Aura_OMI_Level3/OMUVBd.003/{año}/OMI-Aura_L3-OMUVBd_{fecha.strftime('%Y')}m{fecha.strftime('%m')}{fecha.strftime('%d')}_v003-{fecha_final.strftime('%Y')}m{fecha_final.strftime('%m')}{fecha_final.strftime('%d')}t090001.he5.dap.nc4?dap4.ce=/lon[0:1:359];/lat[0:1:179];/UVindex[0:1:179][0:1:359]"""
 
+        url_vis = f"""https://goldsmr4.gesdisc.eosdis.nasa.gov/opendap/MERRA2/M2T1NXADG.5.12.4/{año}/{mes}/MERRA2_400.tavg1_2d_adg_Nx.{año}{mes}{dia}.nc4.dap.nc4?dap4.ce=/lon[0:1:575];/lat[0:1:360];/time[0:1:23];/DUEXTTFM[0:1:23][0:1:360][0:1:575]"""
+
         datos = get_merra2_data(
             url, lon_idx=lon_idx, lat_idx=lat_idx, time_idx=hora, fecha=fecha
         )
@@ -62,8 +65,15 @@ def predecir_clima(lat, lon, hora=12, año=2025, fecha_pred=None):
         # Obtener índice UV
         datos_uv = get_uv_data(url_uv, lon_idx=lon_idx, lat_idx=lat_idx, fecha=fecha)
 
-        if datos and datos_uv:
-            datos.update(datos_uv)
+        # Obtener datos de visibilidad (aerosoles)
+        datos_vis = get_vis_data(
+            url_vis, lon_idx=lon_idx, lat_idx=lat_idx, time_idx=hora, fecha=fecha
+        )
+
+    # Combinar todos los datos
+    if datos and datos_uv and datos_vis:
+        datos.update(datos_uv)
+        datos.update(datos_vis)
         registros.append(
             {
                 "fecha": fecha,
@@ -76,7 +86,8 @@ def predecir_clima(lat, lon, hora=12, año=2025, fecha_pred=None):
                 "CLDTMP": datos["CLDTMP"],
                 "TQI": datos["TQI"],
                 "TQL": datos["TQL"],
-                "UVindex": datos["UVindex"], 
+                "UVindex": datos["UVindex"],
+                "DUEXTTFM": datos["DUEXTTFM"],
             }
         )
 
@@ -99,6 +110,7 @@ def predecir_clima(lat, lon, hora=12, año=2025, fecha_pred=None):
         "TQI",
         "TQL",
         "UVindex",
+        "DUEXTTFM",
     ]
     modelos = {}
     for var in variables:

@@ -8,7 +8,7 @@ def inicio():
     return render_template('index.html')
 
 @app.route('/en')
-def inicio():
+def inicio_ingles():
     return render_template('indexEn.html')
 
 @app.route('/procesar', methods=['POST'])

@@ -20,10 +20,6 @@ def coordenadas_a_indices(lat, lon):
     return lat_idx, lon_idx
 
 
-# --- prediccion.py (Modificado) ---
-
-# ... (código anterior sin cambios) ...
-
 # --- Función principal ---
 def predecir_clima(lat, lon, hora=12, año=2025, fecha_pred=None):
     """
@@ -33,20 +29,19 @@ def predecir_clima(lat, lon, hora=12, año=2025, fecha_pred=None):
 
     if fecha_pred is None:
         print("Debes proporcionar la fecha a predecir.")
-        return None # Retorna None en caso de error
+        return
 
     fecha_pred = pd.to_datetime(fecha_pred)
-    # print(f"\nPrediciendo clima en lat={lat}, lon={lon}, hora={hora}, fecha={fecha_pred.date()}...\n") # Comentado para evitar log extenso
-    
+    print(f"\nPrediciendo clima en lat={lat}, lon={lon}, hora={hora}, fecha={fecha_pred.date()}...\n")
+
     # Convertir coordenadas a índices
     lat_idx, lon_idx = coordenadas_a_indices(lat, lon)
-    # print(f"Índices de grilla: lat_idx={lat_idx}, lon_idx={lon_idx}") # Comentado
+    print(f"Índices de grilla: lat_idx={lat_idx}, lon_idx={lon_idx}")
 
     # Fechas de entrenamiento
     fechas_entrenamiento = pd.date_range(start=f"{año}-01-01", end=f"{año}-01-24", freq="D")
     registros = []
 
-    # ... (Bucle de obtención de datos y creación de 'registros' - SIN CAMBIOS) ...
     for fecha in fechas_entrenamiento:
         mes = f"{fecha.month:02d}"
         dia = f"{fecha.day:02d}"
@@ -67,12 +62,12 @@ def predecir_clima(lat, lon, hora=12, año=2025, fecha_pred=None):
             datos_uv = get_uv_data(url_uv, lon=lon, lat=lat, fecha=fecha)
             datos_vis = get_vis_data(url_vis, lon_idx=lon_idx, lat_idx=lat_idx, time_idx=hora, fecha=fecha)
         except Exception as e:
-            # print(f"[!] Error obteniendo datos para {fecha.date()}: {e}") # Comentado
+            print(f"[!] Error obteniendo datos para {fecha.date()}: {e}")
             continue
 
         # Validar datos
         if not datos or not datos_uv or not datos_vis:
-            # print(f"[!] Datos incompletos para {fecha.date()}, se omite.") # Comentado
+            print(f"[!] Datos incompletos para {fecha.date()}, se omite.")
             continue
 
         # Combinar todo
@@ -110,10 +105,10 @@ def predecir_clima(lat, lon, hora=12, año=2025, fecha_pred=None):
     # Eliminar filas con NaN (manteniendo las válidas)
     df = df.dropna()
     if df.empty:
-        # print("No hay datos válidos después de limpieza.") # Comentado
-        return None
+        print("No hay datos válidos después de limpieza.")
+        return
 
-    # print(f"\nDatos válidos de entrenamiento: {len(df)} días") # Comentado
+    print(f"\nDatos válidos de entrenamiento: {len(df)} días")
 
     # Entrenar modelos
     modelos = {}
@@ -125,7 +120,7 @@ def predecir_clima(lat, lon, hora=12, año=2025, fecha_pred=None):
         y_train = df[var]
 
         if y_train.nunique() <= 1:
-            # print(f"[!] Variable {var} no tiene variación suficiente.") # Comentado
+            print(f"[!] Variable {var} no tiene variación suficiente.")
             continue
 
         modelo = LinearRegression()
@@ -133,36 +128,17 @@ def predecir_clima(lat, lon, hora=12, año=2025, fecha_pred=None):
         modelos[var] = modelo
 
     if not modelos:
-        # print("No se pudieron entrenar modelos.") # Comentado
-        return None
+        print("No se pudieron entrenar modelos.")
+        return
 
     # Predecir
     dia_pred = pd.DataFrame({"dia_del_año": [fecha_pred.dayofyear]})
-    
-    predicciones = {} # Diccionario para almacenar las predicciones
-    # print(f"\n--- Predicciones para {fecha_pred.date()} ---") # Comentado
+    print(f"\n--- Predicciones para {fecha_pred.date()} ---")
     for var, modelo in modelos.items():
         pred = modelo.predict(dia_pred)[0]
-        # print(f"{var}: {pred:.2f}") # Comentado
-        predicciones[var] = pred # Almacenar la predicción
-        
-    # El código de MERRA2 da T2M_K (Temperatura a 2m en Kelvin), convertir a Celsius
-    if "T2M_K" in predicciones:
-        # T(C) = T(K) - 273.15. Redondeamos a 1 decimal.
-        predicciones["temperature_C"] = round(predicciones["T2M_K"] - 273.15, 1)
-    
-    # También incluiremos la velocidad del viento calculada
-    if "U2M" in predicciones and "V2M" in predicciones:
-        # Velocidad del viento (magnitude) = sqrt(U^2 + V^2). Redondeamos a 1 decimal.
-        predicciones["wind_speed_ms"] = round(np.sqrt(predicciones["U2M"]**2 + predicciones["V2M"]**2), 1)
+        print(f"{var}: {pred:.2f}")
 
-    return predicciones # RETORNO CLAVE
 
-# --- Ejemplo de uso (mantenido, pero ya no es la única salida) ---
+# --- Ejemplo de uso ---
 if __name__ == "__main__":
-    resultados = predecir_clima(lat=-6.770154, lon=-79.855540, hora=10, año=2025, fecha_pred="2025-01-30")
-    if resultados:
-        print("\nResultados de la Predicción:")
-        print(resultados)
-    else:
-        print("\nFalló la predicción.")
+    predecir_clima(lat=-6.770154, lon=-79.855540, hora=10, año=2025, fecha_pred="2025-01-30")

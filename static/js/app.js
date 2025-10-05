@@ -116,7 +116,7 @@ async function geocodeLocation(city, country) {
     }
 }
 
-//GEOCODIFICACION
+// RESTAURACIÓN DE LA FUNCIÓN DE GEOCODIFICACIÓN AUTOMÁTICA
 function updateCoordinates() {
     const city = cityInput.value.trim();
     const country = countryInput.value.trim();
@@ -129,9 +129,9 @@ function updateCoordinates() {
 
         geocodeLocation(city, country).then(coords => {
             if (coords) {
-                // Actualizar los campos del formulario de Coordenadas
-                latitudeInput.value = coords.lat.toFixed(4);
-                longitudeInput.value = coords.lon.toFixed(4);
+                // CORRECCIÓN: Usar toFixed(3) para 3 decimales
+                latitudeInput.value = coords.lat.toFixed(3); 
+                longitudeInput.value = coords.lon.toFixed(3);
                 latitudeInput.placeholder = 'Ej: 40.7128';
                 longitudeInput.placeholder = 'Ej: -74.0060';
             } else {
@@ -180,8 +180,9 @@ function initMapModal(centerCoords = [0, 0], zoomLevel = 2) {
 
     // Si se centra en un punto específico (no el centro del mundo), añadir marcador
     if (centerCoords[0] !== 0 || centerCoords[1] !== 0) {
-        const lat = centerCoords[0].toFixed(6);
-        const lon = centerCoords[1].toFixed(6);
+        // CORRECCIÓN: Usar toFixed(3) para 3 decimales al centrar
+        const lat = centerCoords[0].toFixed(3);
+        const lon = centerCoords[1].toFixed(3);
 
         // Crear/mover el marcador
         if (markerModal) {
@@ -210,8 +211,9 @@ function initMapModal(centerCoords = [0, 0], zoomLevel = 2) {
 
 // 4. Manejador de clic en el mapa
 async function onMapClick(e) {
-    const lat = e.latlng.lat.toFixed(6);
-    const lon = e.latlng.lng.toFixed(6);
+    // CORRECCIÓN: Usar toFixed(3) para 3 decimales al seleccionar en el mapa
+    const lat = e.latlng.lat.toFixed(3);
+    const lon = e.latlng.lng.toFixed(3);
 
     // Mover o crear el marcador
     if (markerModal) {
@@ -292,35 +294,105 @@ selectLocationBtn.addEventListener('click', () => {
         document.getElementById('longitude').value = lon;
 
         mapModal.style.display = 'none'; // Cerrar la modal
-        //alert(`Ubicación: ${city}, ${country} (${lat}, ${lon}) cargada.`);
+
+        // CAMBIO CLAVE: Cambiar a la pestaña de Coordenadas
+        // Esto asegura que el Submit Handler use las coordenadas exactas del mapa.
+        document.querySelectorAll(".tab-trigger").forEach((t) => t.classList.remove("active"))
+        document.querySelectorAll(".tab-content").forEach((c) => c.classList.remove("active"))
+        
+        document.querySelector('[data-tab="coordinates"]').classList.add("active")
+        document.getElementById("coordinates-tab").classList.add("active")
+
+        // alert(`Ubicación: ${city}, ${country} (${lat}, ${lon}) cargada.`);
     } else {
         alert('Por favor, haz clic en el mapa para seleccionar una ubicación.');
     }
 });
-document.getElementById("location-form").addEventListener("submit", (e) => {
+
+
+// -----------------------------------------------------------------------------------
+// 🎯 LÓGICA DEL FORMULARIO UNIFICADO (REEMPLAZO DE location-form y coordinates-form) 🎯
+// -----------------------------------------------------------------------------------
+
+document.getElementById("weather-form").addEventListener("submit", async (e) => {
   e.preventDefault()
 
-  const city = document.getElementById("city").value
-  const country = document.getElementById("country").value
-  const date = document.getElementById("date").value
-  const time = document.getElementById("time").value
+  const city = cityInput.value.trim()
+  const country = countryInput.value.trim()
+  let lat = latitudeInput.value.trim()
+  let lon = longitudeInput.value.trim()
+  const date = document.getElementById("date").value // Campo unificado
+  const time = document.getElementById("time").value // Campo unificado
+  
+  // 1. Determinar qué pestaña está activa
+  const activeTabElement = document.querySelector('.tab-trigger.active');
+  if (!activeTabElement) {
+      alert('Error interno: No se pudo determinar la pestaña activa.');
+      return;
+  }
+  const activeTab = activeTabElement.dataset.tab;
+  let finalLat = null;
+  let finalLon = null;
+  let locationName = '';
 
-  // currentWeatherData = getMockWeatherData(city, country, date, time)
+  // 2. Lógica de validación y obtención de coordenadas
+  if (activeTab === 'location') {
+      // Pestaña 'Ciudad / País' activa. Intentar geocodificar.
+      if (!city || !country) {
+          alert('Por favor, introduce la Ciudad y el País.');
+          return;
+      }
+      
+      const coords = await geocodeLocation(city, country);
+      if (coords) {
+          finalLat = coords.lat;
+          finalLon = coords.lon;
+          locationName = `${city}, ${country}`;
+      } else {
+          alert('No se pudieron encontrar las coordenadas para la ubicación proporcionada. Por favor, revisa la ortografía o usa la pestaña de Coordenadas.');
+          return;
+      }
 
-  displayResults(currentWeatherData)
+  } else if (activeTab === 'coordinates') {
+      // Pestaña 'Coordenadas' activa. Usar los campos lat/lon.
+      if (!lat || !lon) {
+          alert('Por favor, introduce la Latitud y Longitud.');
+          return;
+      }
+      
+      finalLat = Number.parseFloat(lat);
+      finalLon = Number.parseFloat(lon);
+      
+      // CORRECCIÓN: Usar toFixed(3) para el nombre de la ubicación en los resultados
+      locationName = `Coordenadas: ${finalLat.toFixed(3)}, ${finalLon.toFixed(3)}`;
+  }
+  
+  // 3. Validar Fecha y Hora (ya son campos compartidos)
+  if (!date || !time) {
+    alert('Por favor, selecciona la Fecha y la Hora.');
+    return;
+  }
+  
+  // 4. (SIMULACIÓN DE BÚSQUEDA)
+  console.log(`Buscando pronóstico para: ${locationName}`);
+  console.log(`Coordenadas: ${finalLat}, ${finalLon}`);
+  console.log(`Fecha/Hora: ${date} a las ${time}`);
+  
+  // MOCK DATA: Usamos la estructura de mock data existente, pero inyectamos
+  // los datos de ubicación y tiempo obtenidos del formulario para que se muestren
+  const mockDataToSend = {
+    ...currentWeatherData,
+    location: locationName, 
+    date: date,
+    time: time,
+    coordinates: { lat: finalLat, lon: finalLon },
+  };
+
+
+  displayResults(mockDataToSend)
 })
 
-document.getElementById("coordinates-form").addEventListener("submit", (e) => {
-  e.preventDefault()
-
-  const lat = Number.parseFloat(document.getElementById("latitude").value)
-  const lon = Number.parseFloat(document.getElementById("longitude").value)
-  const date = document.getElementById("date-coords").value
-  const time = document.getElementById("time-coords").value
-
-  // currentWeatherData = getMockWeatherDataByCoords(lat, lon, date, time)
-  displayResults(currentWeatherData)
-})
+// -----------------------------------------------------------------------------------
 
 function displayResults(data) {
   document.getElementById("results").classList.remove("hidden")
@@ -419,11 +491,11 @@ function displayResults(data) {
             <div class="metric-value">${data.metrics.visibility} km</div>
         </div>
     `
+    // Estas líneas permanecen comentadas hasta que se defina la función drawMap
+    // document.getElementById("marker-location").textContent = data.location
+    // document.getElementById("marker-temp").textContent = `${data.temperature}°C`
 
-  document.getElementById("marker-location").textContent = data.location
-  document.getElementById("marker-temp").textContent = `${data.temperature}°C`
+    // drawMap(data)
 
-  drawMap(data)
-
-  document.getElementById("results").scrollIntoView({ behavior: "smooth" })
+    document.getElementById("results").scrollIntoView({ behavior: "smooth" })
 }

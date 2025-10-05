@@ -33,11 +33,11 @@
                     <div class="form-grid">
                         <div class="form-group">
                             <label for="city">Ciudad</label>
-                            <input type="text" id="city" placeholder="Ej: Nueva York" required>
+                            <input type="text" id="city" name="ciudad" placeholder="Ej: Nueva York" required>
                         </div>
                         <div class="form-group">
                             <label for="country">País</label>
-                            <input type="text" id="country" placeholder="Ej: Estados Unidos" required>
+                            <input type="text" id="country" name="pais" placeholder="Ej: Estados Unidos" required>
                         </div>
                         <div class="form-group">
                             <label for="mapa-btn">Elegir en Mapa</label>
@@ -51,11 +51,11 @@
                         </div>
                         <div class="form-group">
                             <label for="date">Fecha</label>
-                            <input type="date" id="date" required>
+                            <input type="date" id="date" name="date" required>
                         </div>
                         <div class="form-group">
                             <label for="time">Hora</label>
-                            <input type="time" id="time" required step="3600">
+                            <input type="time" id="time" name="time" required step="3600">
                         </div>
                     </div>
                     <button type="submit" class="btn-primary">Buscar Pronóstico</button>
@@ -67,19 +67,19 @@
                     <div class="form-grid">
                         <div class="form-group">
                             <label for="latitude">Latitud</label>
-                            <input type="number" id="latitude" step="0.0001" placeholder="Ej: 40.7128" required>
+                            <input type="number" id="latitude" name="latitude" step="0.0001" placeholder="Ej: 40.7128" required>
                         </div>
                         <div class="form-group">
                             <label for="longitude">Longitud</label>
-                            <input type="number" id="longitude" step="0.0001" placeholder="Ej: -74.0060" required>
+                            <input type="number" id="longitude" name="longitude" step="0.0001" placeholder="Ej: -74.0060" required>
                         </div>
                         <div class="form-group">
                             <label for="date-coords">Fecha</label>
-                            <input type="date" id="date-coords" required>
+                            <input type="date" id="date-coords" name="date-coords" required>
                         </div>
                         <div class="form-group">
                             <label for="time-coords">Hora</label>
-                            <input type="time" id="time-coords" required>
+                            <input type="time" id="time-coords" step="3600" name="time-coords" required>
                         </div>
                     </div>
                     <button type="submit" class="btn-primary">Buscar Pronóstico</button>

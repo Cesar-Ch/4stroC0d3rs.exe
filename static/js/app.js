@@ -1,508 +1,270 @@
-const currentWeatherData = {
-    location: "Springfield, USA",
-    date: "2025-10-04",
-    time: "14:00",
-    temperature: 22,
-    events: [
-        {
-            name: "Tormenta eléctrica",
-            description: "Posibles rayos y fuertes lluvias durante la tarde.",
-            severity: "high", // puede ser 'low', 'medium' o 'high' para el color
-        },
-        {
-            name: "Vientos fuertes",
-            description: "Ráfagas de hasta 60 km/h en zonas abiertas.",
-            severity: "medium",
-        },
-    ],
-    metrics: {
-        uvIndex: 6,
-        humidity: 72,
-        windSpeed: 18,
-        dewPoint: 16,
-        pressure: 1012,
-        visibility: 9,
-    },
-    coordinates: {
-        lat: 39.78,
-        lon: -89.64,
-    },
-}
+// app.js
 
-// Tab switching
-document.querySelectorAll(".tab-trigger").forEach((trigger) => {
-    trigger.addEventListener("click", () => {
-        const tabName = trigger.dataset.tab
+// --- SELECTORES DE ELEMENTOS DEL DOM ---
+const searchForm = document.getElementById("search-form")
+const dateInput = document.getElementById("date")
+const timeInput = document.getElementById("time")
+const latitudeInput = document.getElementById("latitude")
+const longitudeInput = document.getElementById("longitude")
+const locationNameInput = document.getElementById("location-name-input")
+const mapModal = document.getElementById("map-modal")
+const closeBtn = document.querySelector(".close-btn")
+const mapContainerModal = document.getElementById("map-container-modal")
+const coordsModal = document.getElementById("coords-modal")
+const locationModalName = document.getElementById("location-modal-name")
+const selectLocationBtn = document.getElementById("select-location-btn")
 
-        document.querySelectorAll(".tab-trigger").forEach((t) => t.classList.remove("active"))
-        document.querySelectorAll(".tab-content").forEach((c) => c.classList.remove("active"))
+let map = null
+let marker = null
 
-        trigger.classList.add("active")
-        document.getElementById(`${tabName}-tab`).classList.add("active")
-    })
-})
-
-//Para el reloj, hora fija
-
-const timeInput = document.getElementById("time");
-timeInput.addEventListener("change", () => {
-    const [hours] = timeInput.value.split(":");
-    timeInput.value = `${hours.padStart(2, "0")}:00`;
-});
-
-
-//Map
-
-// 1. Obtener elementos del DOM
-const mapModal = document.getElementById('map-modal');
-const mapaBtn = document.getElementById('mapa-btn');
-const closeBtn = document.querySelector('.close-btn');
-const selectLocationBtn = document.getElementById('select-location-btn');
-const coordsModalDisplay = document.getElementById('coords-modal');
-const locationModalName = document.getElementById('location-modal-name');
-
-// Nuevos elementos para geocodificación (de ambas pestañas)
-const cityInput = document.getElementById('city');
-const countryInput = document.getElementById('country');
-const latitudeInput = document.getElementById('latitude'); // De la pestaña de Coordenadas
-const longitudeInput = document.getElementById('longitude'); // De la pestaña de Coordenadas
-
-// 2. Variables del Mapa (se inicializarán al abrir la modal)
-let mapModalInstance = null;
-let markerModal = null;
-
-
-// --- LÓGICA DE GEOCODIFICACIÓN (Ciudad/País a Coordenadas) ---
+// --- LÓGICA DEL MAPA Y GEOLOCALIZACIÓN ---
 
 /**
- * Convierte el nombre de una ciudad/país en coordenadas (lat, lon) usando Nominatim.
- * @param {string} city - Nombre de la ciudad.
- * @param {string} country - Nombre del país.
- * @returns {Promise<{lat: number, lon: number} | null>} Coordenadas o null si falla.
+ * Inicializa el mapa Leaflet en el modal.
  */
-async function geocodeLocation(city, country) {
-    if (!city || !country) return null;
-
-    const query = `${city}, ${country}`;
-    // Usamos el endpoint de Nominatim. El parámetro 'limit=1' solo pide el mejor resultado.
-    const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`;
-
-    try {
-        const response = await fetch(url, {
-            // Requerimiento de Nominatim: Usar un User-Agent
-            headers: {
-                'User-Agent': 'FutureWeatherApp/1.0 (contact@example.com)'
-            }
-        });
-
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const data = await response.json();
-
-        if (data && data.length > 0) {
-            // Extraer latitud y longitud del primer resultado
-            const lat = parseFloat(data[0].lat);
-            const lon = parseFloat(data[0].lon);
-            return { lat, lon };
-        } else {
-            console.warn(`No se encontraron coordenadas para: ${query}`);
-            return null;
-        }
-    } catch (error) {
-        console.error('Error en geocodificación:', error);
-        return null;
+function initMap() {
+    // Si el mapa ya existe, lo remueve para recrearlo (necesario dentro del modal)
+    if (map !== null) {
+        map.remove()
     }
-}
+    // Coordenada inicial (usando una ubicación conocida)
+    map = L.map(mapContainerModal).setView([6.244203, -75.581216], 13) 
 
-// RESTAURACIÓN DE LA FUNCIÓN DE GEOCODIFICACIÓN AUTOMÁTICA
-function updateCoordinates() {
-    const city = cityInput.value.trim();
-    const country = countryInput.value.trim();
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    }).addTo(map)
 
-    // Solo geocodificar si ambos campos tienen valor
-    if (city && country) {
-        // Mostrar retroalimentación de carga
-        latitudeInput.placeholder = 'Cargando...';
-        longitudeInput.placeholder = 'Cargando...';
+    // Marcador arrastrable en el centro inicial del mapa
+    marker = L.marker(map.getCenter(), { draggable: true }).addTo(map)
 
-        geocodeLocation(city, country).then(coords => {
-            if (coords) {
-                // CORRECCIÓN: Usar toFixed(3) para 3 decimales
-                latitudeInput.value = coords.lat.toFixed(3);
-                longitudeInput.value = coords.lon.toFixed(3);
-                latitudeInput.placeholder = 'Ej: 40.7128';
-                longitudeInput.placeholder = 'Ej: -74.0060';
-            } else {
-                // Limpiar campos si no hay resultado
-                latitudeInput.value = '';
-                longitudeInput.value = '';
-                latitudeInput.placeholder = 'No encontrado';
-                longitudeInput.placeholder = 'No encontrado';
-            }
-        }).catch(() => {
-            latitudeInput.value = '';
-            longitudeInput.value = '';
-            latitudeInput.placeholder = 'Error de conexión';
-            longitudeInput.placeholder = 'Error de conexión';
-        });
-    } else {
-        // Limpiar campos si faltan datos en el formulario de Ciudad/País
-        latitudeInput.value = '';
-        longitudeInput.value = '';
-        latitudeInput.placeholder = 'Ej: 40.7128';
-        longitudeInput.placeholder = 'Ej: -74.0060';
-    }
-}
+    // Eventos para arrastrar y hacer clic en el mapa
+    marker.on("dragend", onMapClick)
+    map.on("click", onMapClick)
 
-// Escuchar los eventos de cambio en Ciudad y País
-cityInput.addEventListener('change', updateCoordinates);
-countryInput.addEventListener('change', updateCoordinates);
-
-// --- FIN LÓGICA DE GEOCODIFICACIÓN ---
-
-
-// 3. Función para inicializar el mapa dentro de la modal (MODIFICADA para aceptar centrado)
-function initMapModal(centerCoords = [0, 0], zoomLevel = 2) {
-    if (mapModalInstance) {
-        mapModalInstance.remove(); // Limpiar mapa anterior si existe
-    }
-
-    // Inicializar el mapa con las coordenadas de centrado y zoom
-    mapModalInstance = L.map('map-container-modal').setView(centerCoords, zoomLevel);
-
-    // Capa base de OpenStreetMap
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        maxZoom: 18,
-        attribution: '© OpenStreetMap contributors'
-    }).addTo(mapModalInstance);
-
-    // Si se centra en un punto específico (no el centro del mundo), añadir marcador
-    if (centerCoords[0] !== 0 || centerCoords[1] !== 0) {
-        // CORRECCIÓN: Usar toFixed(3) para 3 decimales al centrar
-        const lat = centerCoords[0].toFixed(3);
-        const lon = centerCoords[1].toFixed(3);
-
-        // Crear/mover el marcador
-        if (markerModal) {
-            markerModal.setLatLng(centerCoords);
-        } else {
-            markerModal = L.marker(centerCoords).addTo(mapModalInstance);
-        }
-
-        // Cargar info temporalmente
-        const city = cityInput.value || 'Ubicación seleccionada';
-        const country = countryInput.value || '';
-
-        mapModalInstance.tempLocation = { lat, lon, city, country };
-        coordsModalDisplay.textContent = `Latitud: ${lat} | Longitud: ${lon}`;
-        locationModalName.textContent = `${city}${country ? `, ${country}` : ''}`;
-    }
-
-    // Configurar evento de clic en el mapa
-    mapModalInstance.on('click', onMapClick);
-
-    // Arreglar posible problema de tiles rotos al cargar en modal
+    // Ajusta el tamaño del mapa después de que el modal se muestre
     setTimeout(() => {
-        mapModalInstance.invalidateSize();
-    }, 100);
+        map.invalidateSize()
+    }, 100)
 }
 
-// 4. Manejador de clic en el mapa
-async function onMapClick(e) {
-    // CORRECCIÓN: Usar toFixed(3) para 3 decimales al seleccionar en el mapa
-    const lat = e.latlng.lat.toFixed(3);
-    const lon = e.latlng.lng.toFixed(3);
-
-    // Mover o crear el marcador
-    if (markerModal) {
-        markerModal.setLatLng(e.latlng);
+/**
+ * Actualiza las coordenadas y busca el nombre de la ubicación (Geocodificación Inversa).
+ * @param {Event} e - Evento de mapa (click o dragend).
+ */
+function onMapClick(e) {
+    let lat, lon
+    if (e.latlng) {
+        lat = e.latlng.lat
+        lon = e.latlng.lng
     } else {
-        markerModal = L.marker(e.latlng).addTo(mapModalInstance);
+        // Para el evento 'dragend'
+        lat = e.target.getLatLng().lat
+        lon = e.target.getLatLng().lng
     }
 
-    // Actualizar coordenadas
-    coordsModalDisplay.textContent = `Latitud: ${lat} | Longitud: ${lon}`;
+    marker.setLatLng([lat, lon])
+    coordsModal.textContent = `Latitud: ${lat.toFixed(6)} | Longitud: ${lon.toFixed(6)}`
 
-    // Actualizar Ciudad/País usando geocodificación inversa (Nominatim)
-    const reverseGeocodeUrl = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=10`;
-
-    try {
-        const response = await fetch(reverseGeocodeUrl);
-        const data = await response.json();
-
-        // Extraer ciudad y país (adaptar a la estructura de la respuesta)
-        const address = data.address;
-        const city = address.city || address.town || address.village || address.county || data.display_name.split(',')[0].trim();
-        const country = address.country || '';
-
-        // Guardar datos temporales para su transferencia
-        mapModalInstance.tempLocation = { lat, lon, city, country };
-        locationModalName.textContent = `${city}, ${country}`;
-
-    } catch (error) {
-        console.error('Error en geocodificación inversa:', error);
-        locationModalName.textContent = `Ubicación no identificada`;
-        mapModalInstance.tempLocation = { lat, lon, city: '', country: '' };
-    }
+    // Geocodificación inversa
+    fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}`)
+        .then((response) => response.json())
+        .then((data) => {
+            const displayName = data.display_name || "Ubicación Desconocida"
+            locationModalName.textContent = displayName
+        })
+        .catch(() => {
+            locationModalName.textContent = "Error al obtener el nombre."
+        })
 }
 
-
-// 5. Abrir la modal (MODIFICADO para centrar el mapa)
-mapaBtn.addEventListener('click', () => {
-    mapModal.style.display = 'block';
-
-    let centerLat = parseFloat(latitudeInput.value); // Lee del campo Latitud (Coordenadas tab)
-    let centerLon = parseFloat(longitudeInput.value); // Lee del campo Longitud (Coordenadas tab)
-    let centerCoords = [0, 0];
-    let zoom = 2; // Zoom global por defecto
-
-    // Si tenemos coordenadas válidas, las usamos y aplicamos un zoom más cercano (e.g., zoom 10)
-    if (!isNaN(centerLat) && !isNaN(centerLon)) {
-        centerCoords = [centerLat, centerLon];
-        zoom = 10;
-    }
-
-    // Inicializar el mapa con las coordenadas y el zoom
-    initMapModal(centerCoords, zoom);
-});
-
-// 6. Cerrar la modal
-closeBtn.addEventListener('click', () => {
-    mapModal.style.display = 'none';
-});
-
-// Cerrar al hacer clic fuera de la modal
-window.addEventListener('click', (e) => {
-    if (e.target === mapModal) {
-        mapModal.style.display = 'none';
-    }
-});
-
-// 7. Usar esta Ubicación (Transferir datos al formulario principal)
-selectLocationBtn.addEventListener('click', () => {
-    if (mapModalInstance && mapModalInstance.tempLocation) {
-        const { lat, lon, city, country } = mapModalInstance.tempLocation;
-
-        // Cargar Ciudad/País al formulario de Ubicación (location-tab)
-        document.getElementById('city').value = city;
-        document.getElementById('country').value = country;
-
-        // Cargar Lat/Lon al formulario de Coordenadas (coordinates-tab)
-        document.getElementById('latitude').value = lat;
-        document.getElementById('longitude').value = lon;
-
-        mapModal.style.display = 'none'; // Cerrar la modal
-
-        // CAMBIO CLAVE: Cambiar a la pestaña de Coordenadas
-        // Esto asegura que el Submit Handler use las coordenadas exactas del mapa.
-        document.querySelectorAll(".tab-trigger").forEach((t) => t.classList.remove("active"))
-        document.querySelectorAll(".tab-content").forEach((c) => c.classList.remove("active"))
-
-        document.querySelector('[data-tab="coordinates"]').classList.add("active")
-        document.getElementById("coordinates-tab").classList.add("active")
-
-        // alert(`Ubicación: ${city}, ${country} (${lat}, ${lon}) cargada.`);
-    } else {
-        alert('Por favor, haz clic en el mapa para seleccionar una ubicación.');
-    }
-});
-
-
-// -----------------------------------------------------------------------------------
-// 🎯 LÓGICA DEL FORMULARIO UNIFICADO (Uso de FETCH para comunicarse con Flask) 🎯
-// -----------------------------------------------------------------------------------
-
-document.getElementById("weather-form").addEventListener("submit", async (e) => {
-    e.preventDefault() // Evita el envío tradicional y permite a JS tomar el control.
-
-    const city = cityInput.value.trim()
-    const country = countryInput.value.trim()
-    let lat = latitudeInput.value.trim()
-    let lon = longitudeInput.value.trim()
-    const date = document.getElementById("date").value // Campo unificado
-    const time = document.getElementById("time").value // Campo unificado
-
-    // 1. Determinar qué pestaña está activa
-    const activeTabElement = document.querySelector('.tab-trigger.active');
-    if (!activeTabElement) {
-        alert('Error interno: No se pudo determinar la pestaña activa.');
-        return;
-    }
-    const activeTab = activeTabElement.dataset.tab;
-    let finalLat = null;
-    let finalLon = null;
-    let locationName = '';
-
-    // 2. Lógica de validación y obtención de coordenadas
-    if (activeTab === 'location') {
-        // Pestaña 'Ciudad / País' activa. Intentar geocodificar.
-        if (!city || !country) {
-            alert('Por favor, introduce la Ciudad y el País.');
-            return;
-        }
-
-        const coords = await geocodeLocation(city, country);
-        if (coords) {
-            finalLat = coords.lat;
-            finalLon = coords.lon;
-            locationName = `${city}, ${country}`;
-        } else {
-            alert('No se pudieron encontrar las coordenadas para la ubicación proporcionada. Por favor, revisa la ortografía o usa la pestaña de Coordenadas.');
-            return;
-        }
-
-    } else if (activeTab === 'coordinates') {
-        // Pestaña 'Coordenadas' activa. Usar los campos lat/lon.
-        if (!lat || !lon) {
-            alert('Por favor, introduce la Latitud y Longitud.');
-            return;
-        }
-
-        finalLat = Number.parseFloat(lat);
-        finalLon = Number.parseFloat(lon);
-
-        // CORRECCIÓN: Usar toFixed(3) para el nombre de la ubicación en los resultados
-        locationName = `Coordenadas: ${finalLat.toFixed(3)}, ${finalLon.toFixed(3)}`;
-    }
-
-    // 3. Validar Fecha y Hora (ya son campos compartidos)
-    if (!date || !time) {
-        alert('Por favor, selecciona la Fecha y la Hora.');
-        return;
-    }
-
-    // 4. Lógica de Envío (Reemplaza la Simulación)
-
-    const formData = new FormData();
-    // Los datos clave que Flask necesita
-    formData.append('date', date);
-    formData.append('time', time);
-    formData.append('latitude', finalLat);
-    formData.append('longitude', finalLon);
-    formData.append('location_name', locationName); // Envía el nombre de ubicación procesado
-
-    try {
-        // Llamada asíncrona a la ruta de Flask
-        const response = await fetch('/procesar', {
-            method: 'POST',
-            body: new URLSearchParams(formData) // Envía como formulario estándar
-        });
-
-        if (!response.ok) {
-            // Manejo de errores de HTTP
-            throw new Error(`Error en la respuesta del servidor: ${response.status}`);
-        }
-
-        // La respuesta de Flask (solo para confirmación o para datos reales a futuro)
-        const serverMessage = await response.json();
-        console.log("Respuesta del servidor Flask:", serverMessage);
-
-        // MOCK DATA: Mantenemos el mock para la visualización, inyectando
-        // los datos de ubicación y tiempo obtenidos del formulario.
-        const mockDataToSend = {
-            ...currentWeatherData,
-            location: locationName,
-            date: date,
-            time: time,
-            coordinates: { lat: finalLat, lon: finalLon },
-        };
-
-
-        displayResults(mockDataToSend)
-    } catch (error) {
-        console.error('Error al enviar datos al servidor:', error);
-        alert('Ocurrió un error al buscar el pronóstico. Verifica que el servidor Flask esté corriendo y la ruta /procesar sea accesible.');
-    }
-
+// Evento: Abrir el modal del mapa
+locationNameInput.addEventListener("click", () => {
+    mapModal.classList.add("show")
+    initMap()
 })
 
-// -----------------------------------------------------------------------------------
+// Evento: Cerrar el modal con el botón 'x'
+closeBtn.addEventListener("click", () => {
+    mapModal.classList.remove("show")
+})
 
-function displayResults(data) {
+// Evento: Cerrar el modal al hacer clic fuera
+window.addEventListener("click", (event) => {
+    if (event.target === mapModal) {
+        mapModal.classList.remove("show")
+    }
+})
+
+// Evento: Usar la ubicación seleccionada del mapa
+selectLocationBtn.addEventListener("click", () => {
+    const coordsText = coordsModal.textContent.split("|")
+    const lat = coordsText[0].replace("Latitud: ", "").trim()
+    const lon = coordsText[1].replace("Longitud: ", "").trim()
+    const locationName = locationModalName.textContent
+
+    // Rellenar los campos del formulario principal
+    latitudeInput.value = lat
+    longitudeInput.value = lon
+    locationNameInput.value = locationName
+    mapModal.classList.remove("show")
+})
+
+// --- LÓGICA DEL FORMULARIO Y CONEXIÓN CON FLASK ---
+
+searchForm.addEventListener("submit", handleSearch)
+
+/**
+ * Maneja el envío del formulario, envía los datos a Flask y procesa la respuesta.
+ * @param {Event} event - Evento de envío del formulario.
+ */
+async function handleSearch(event) {
+    event.preventDefault()
+
+    const formData = new FormData(searchForm)
+    const data = Object.fromEntries(formData.entries())
+    
+    // Convertir el objeto plano a URLSearchParams para la solicitud POST (formato esperado por Flask)
+    const params = new URLSearchParams(data)
+    
+    console.log("Enviando datos a Flask:", data)
+
+    // Mostrar mensaje de carga
+    document.getElementById("results").classList.add("hidden")
+    document.getElementById("location-name").textContent = "Cargando Pronóstico..."
+    document.getElementById("datetime").textContent = "..."
     document.getElementById("results").classList.remove("hidden")
 
+    try {
+        const response = await fetch("/procesar", {
+            method: "POST",
+            body: params,
+        })
+
+        if (!response.ok) {
+            throw new Error(`Error HTTP: ${response.status}. Fallo la conexión con el servidor.`)
+        }
+
+        // Obtener la respuesta JSON de Flask (que ya contiene las predicciones)
+        const serverMessage = await response.json()
+        console.log("Respuesta del servidor Flask:", serverMessage)
+
+        if (serverMessage.status === "success") {
+            // Llamar a displayResults con los datos REALES de predicción
+            displayResults(serverMessage)
+        } else if (serverMessage.status === "warning") {
+            // Manejar advertencias específicas del servidor
+            alert(`ADVERTENCIA: ${serverMessage.message}`)
+            document.getElementById("location-name").textContent = serverMessage.location || "Error de Pronóstico"
+            document.getElementById("datetime").textContent = serverMessage.message
+            document.getElementById("temperature").textContent = "N/A"
+            document.getElementById("metrics-grid").innerHTML = ""
+        } else {
+            // Manejar errores de validación de datos
+            alert(`ERROR: ${serverMessage.message}`)
+        }
+        
+    } catch (error) {
+        console.error("Error en la conexión o procesamiento:", error)
+        alert("Ocurrió un error al buscar el pronóstico. Intenta más tarde o verifica la consola.")
+        // Mostrar mensaje de error en la interfaz
+        document.getElementById("location-name").textContent = "Error de Conexión"
+        document.getElementById("datetime").textContent = "No se pudo comunicar con el servidor."
+        document.getElementById("temperature").textContent = "N/A"
+        document.getElementById("metrics-grid").innerHTML = ""
+    }
+}
+
+// --- FUNCIÓN DE RENDERIZADO DE RESULTADOS ---
+
+/**
+ * Muestra los resultados de la predicción en la interfaz.
+ * @param {Object} data - Objeto JSON con los resultados de la predicción de Flask.
+ */
+function displayResults(data) {
+    // Asegurarse de que el contenedor de resultados esté visible
+    document.getElementById("results").classList.remove("hidden")
+
+    // Encabezado
     document.getElementById("location-name").textContent = data.location
     document.getElementById("datetime").textContent = `${data.date} a las ${data.time}`
     document.getElementById("temperature").textContent = `${data.temperature}°C`
 
+    // Eventos (si los hay)
     const eventsContainer = document.getElementById("events-container")
-    if (data.events.length > 0) {
+    // Se mantiene la estructura para eventos aunque prediccion.py no los genera
+    if (data.events && data.events.length > 0) { 
         eventsContainer.classList.remove("hidden")
         eventsContainer.innerHTML = data.events
             .map(
                 (event) => `
-            <div class="event-card ${event.severity}">
+            <div class="event-card event-${event.severity}">
                 <div class="event-header">
-                    <svg class="event-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
-                        <line x1="12" y1="9" x2="12" y2="13"></line>
-                        <line x1="12" y1="17" x2="12.01" y2="17"></line>
-                    </svg>
-                    <span class="event-name">${event.name}</span>
+                    <span class="event-icon">⚠️</span>
+                    <span class="event-title">${event.name}</span>
                 </div>
-                <p class="event-description">${event.description}</p>
+                <p>${event.description}</p>
             </div>
-        `,
+        `
             )
             .join("")
     } else {
         eventsContainer.classList.add("hidden")
+        eventsContainer.innerHTML = ""
     }
 
-    const metricsGrid = document.getElementById("metrics-grid")
-    metricsGrid.innerHTML = `
+    // Métricas
+    // document.documentElement.lang permite mostrar el texto en español o inglés
+    document.getElementById("metrics-grid").innerHTML = `
         <div class="metric-card">
             <div class="metric-header">
                 <svg class="metric-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <circle cx="12" cy="12" r="5"></circle>
-                    <line x1="12" y1="1" x2="12" y2="3"></line>
-                    <line x1="12" y1="21" x2="12" y2="23"></line>
-                    <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
-                    <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
-                    <line x1="1" y1="12" x2="3" y2="12"></line>
-                    <line x1="21" y1="12" x2="23" y2="12"></line>
-                    <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
-                    <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                    <path d="M12 2v20"></path>
+                    <path d="M17.5 6.5l-11 11"></path>
+                    <path d="M4.9 9.1l14.2 5.8"></path>
                 </svg>
-                <span class="metric-label">Índice UV</span>
-            </div>
-            <div class="metric-value">${data.metrics.uvIndex}</div>
-        </div>
-        <div class="metric-card">
-            <div class="metric-header">
-                <svg class="metric-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"></path>
-                </svg>
-                <span class="metric-label">Humedad</span>
+                <span class="metric-label">${document.documentElement.lang === 'en' ? 'Humidity' : 'Humedad'}</span>
             </div>
             <div class="metric-value">${data.metrics.humidity}%</div>
         </div>
         <div class="metric-card">
             <div class="metric-header">
                 <svg class="metric-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M9.59 4.59A2 2 0 1 1 11 8H2m10.59 11.41A2 2 0 1 0 14 16H2m15.73-8.27A2.5 2.5 0 1 1 19.5 12H2"></path>
+                    <path d="M10 2a8 8 0 0 0-8 8c0 7 10 12 10 12s10-5 10-12a8 8 0 0 0-8-8z"></path>
+                    <circle cx="10" cy="10" r="3"></circle>
                 </svg>
-                <span class="metric-label">Viento</span>
+                <span class="metric-label">${document.documentElement.lang === 'en' ? 'UV Index' : 'Índice UV'}</span>
+            </div>
+            <div class="metric-value">${data.metrics.uvIndex}</div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-header">
+                <svg class="metric-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                </svg>
+                <span class="metric-label">${document.documentElement.lang === 'en' ? 'Wind Speed' : 'Velocidad del Viento'}</span>
             </div>
             <div class="metric-value">${data.metrics.windSpeed} km/h</div>
         </div>
         <div class="metric-card">
             <div class="metric-header">
                 <svg class="metric-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"></path>
+                    <path d="M8 2v2"></path>
+                    <path d="M16 2v2"></path>
+                    <path d="M21 7H3"></path>
+                    <path d="M12 12v10"></path>
+                    <path d="M18 18H6"></path>
                 </svg>
-                <span class="metric-label">Punto de Rocío</span>
+                <span class="metric-label">${document.documentElement.lang === 'en' ? 'Dew Point' : 'Punto de Rocío'}</span>
             </div>
             <div class="metric-value">${data.metrics.dewPoint}°C</div>
         </div>
         <div class="metric-card">
             <div class="metric-header">
                 <svg class="metric-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"></path>
+                    <path d="M21 15a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                    <path d="M12 11v-2"></path>
                 </svg>
-                <span class="metric-label">Presión</span>
+                <span class="metric-label">${document.documentElement.lang === 'en' ? 'Pressure' : 'Presión'}</span>
             </div>
             <div class="metric-value">${data.metrics.pressure} hPa</div>
         </div>
@@ -512,33 +274,31 @@ function displayResults(data) {
                     <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
                     <circle cx="12" cy="12" r="3"></circle>
                 </svg>
-                <span class="metric-label">Visibilidad</span>
+                <span class="metric-label">${document.documentElement.lang === 'en' ? 'Visibility' : 'Visibilidad'}</span>
             </div>
             <div class="metric-value">${data.metrics.visibility} km</div>
         </div>
     `
-    // Estas líneas permanecen comentadas hasta que se defina la función drawMap
-    // document.getElementById("marker-location").textContent = data.location
-    // document.getElementById("marker-temp").textContent = `${data.temperature}°C`
 
-    // drawMap(data)
-
+    // Desplazarse suavemente a los resultados
     document.getElementById("results").scrollIntoView({ behavior: "smooth" })
 }
+
+// --- LÓGICA DE INTERRUPTOR DE IDIOMA ---
 
 const switcher = document.getElementById('lang-switcher');
 const langBtn = document.getElementById('lang-btn');
 const langMenu = document.getElementById('lang-menu');
 
 langBtn.addEventListener('click', () => {
-    switcher.classList.toggle('open');
+    switcher.classList.toggle('active');
+    langMenu.classList.toggle('active');
 });
 
-
-
-// Cerrar menú al hacer clic fuera
-document.addEventListener('click', (e) => {
-    if (!switcher.contains(e.target)) {
-        switcher.classList.remove('open');
+// Cerrar el menú si se hace clic fuera
+document.addEventListener('click', (event) => {
+    if (!switcher.contains(event.target)) {
+        switcher.classList.remove('active');
+        langMenu.classList.remove('active');
     }
 });

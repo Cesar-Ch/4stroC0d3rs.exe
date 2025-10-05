@@ -315,29 +315,27 @@ selectLocationBtn.addEventListener('click', () => {
 // -----------------------------------------------------------------------------------
 
 document.getElementById("weather-form").addEventListener("submit", async (e) => {
-    e.preventDefault() // Evita el envío tradicional y permite a JS tomar el control.
+    e.preventDefault();
 
-    const city = cityInput.value.trim()
-    const country = countryInput.value.trim()
-    let lat = latitudeInput.value.trim()
-    let lon = longitudeInput.value.trim()
-    const date = document.getElementById("date").value // Campo unificado
-    const time = document.getElementById("time").value // Campo unificado
+    const city = cityInput.value.trim();
+    const country = countryInput.value.trim();
+    let lat = latitudeInput.value.trim();
+    let lon = longitudeInput.value.trim();
+    const date = document.getElementById("date").value;
+    const time = document.getElementById("time").value;
 
-    // 1. Determinar qué pestaña está activa
     const activeTabElement = document.querySelector('.tab-trigger.active');
     if (!activeTabElement) {
         alert('Error interno: No se pudo determinar la pestaña activa.');
         return;
     }
+
     const activeTab = activeTabElement.dataset.tab;
     let finalLat = null;
     let finalLon = null;
     let locationName = '';
 
-    // 2. Lógica de validación y obtención de coordenadas
     if (activeTab === 'location') {
-        // Pestaña 'Ciudad / País' activa. Intentar geocodificar.
         if (!city || !country) {
             alert('Por favor, introduce la Ciudad y el País.');
             return;
@@ -349,12 +347,11 @@ document.getElementById("weather-form").addEventListener("submit", async (e) => 
             finalLon = coords.lon;
             locationName = `${city}, ${country}`;
         } else {
-            alert('No se pudieron encontrar las coordenadas para la ubicación proporcionada. Por favor, revisa la ortografía o usa la pestaña de Coordenadas.');
+            alert('No se pudieron encontrar las coordenadas para la ubicación proporcionada.');
             return;
         }
 
     } else if (activeTab === 'coordinates') {
-        // Pestaña 'Coordenadas' activa. Usar los campos lat/lon.
         if (!lat || !lon) {
             alert('Por favor, introduce la Latitud y Longitud.');
             return;
@@ -362,94 +359,102 @@ document.getElementById("weather-form").addEventListener("submit", async (e) => 
 
         finalLat = Number.parseFloat(lat);
         finalLon = Number.parseFloat(lon);
-
-        // CORRECCIÓN: Usar toFixed(3) para el nombre de la ubicación en los resultados
         locationName = `Coordenadas: ${finalLat.toFixed(3)}, ${finalLon.toFixed(3)}`;
     }
 
-    // 3. Validar Fecha y Hora (ya son campos compartidos)
     if (!date || !time) {
         alert('Por favor, selecciona la Fecha y la Hora.');
         return;
     }
 
-    // 4. Lógica de Envío (Reemplaza la Simulación)
-
     const formData = new FormData();
-    // Los datos clave que Flask necesita
     formData.append('date', date);
     formData.append('time', time);
     formData.append('latitude', finalLat);
     formData.append('longitude', finalLon);
-    formData.append('location_name', locationName); // Envía el nombre de ubicación procesado
+    formData.append('location_name', locationName);
 
     try {
-        // Llamada asíncrona a la ruta de Flask
         const response = await fetch('/procesar', {
             method: 'POST',
-            body: new URLSearchParams(formData) // Envía como formulario estándar
+            body: new URLSearchParams(formData)
         });
 
         if (!response.ok) {
-            // Manejo de errores de HTTP
-            throw new Error(`Error en la respuesta del servidor: ${response.status}`);
+            throw new Error(`Error HTTP: ${response.status}`);
         }
 
-        // La respuesta de Flask (solo para confirmación o para datos reales a futuro)
-        const serverMessage = await response.json();
-        console.log("Respuesta del servidor Flask:", serverMessage);
+        const resultado = await response.json();
 
-        // MOCK DATA: Mantenemos el mock para la visualización, inyectando
-        // los datos de ubicación y tiempo obtenidos del formulario.
-        const mockDataToSend = {
-            ...currentWeatherData,
-            location: locationName,
-            date: date,
-            time: time,
-            coordinates: { lat: finalLat, lon: finalLon },
-        };
+        if (resultado.error) {
+            alert(`Error: ${resultado.error}`);
+            return;
+        }
 
+        displayResults(resultado);
 
-        displayResults(mockDataToSend)
     } catch (error) {
         console.error('Error al enviar datos al servidor:', error);
-        alert('Ocurrió un error al buscar el pronóstico. Verifica que el servidor Flask esté corriendo y la ruta /procesar sea accesible.');
+        alert('Ocurrió un error al buscar el pronóstico. Verifica el servidor Flask.');
     }
+});
 
-})
 
 // -----------------------------------------------------------------------------------
 
 function displayResults(data) {
+
+    console.log(data)
     document.getElementById("results").classList.remove("hidden")
 
-    document.getElementById("location-name").textContent = data.location
-    document.getElementById("datetime").textContent = `${data.date} a las ${data.time}`
-    document.getElementById("temperature").textContent = `${data.temperature}°C`
 
-    const eventsContainer = document.getElementById("events-container")
-    if (data.events.length > 0) {
-        eventsContainer.classList.remove("hidden")
-        eventsContainer.innerHTML = data.events
-            .map(
-                (event) => `
-            <div class="event-card ${event.severity}">
-                <div class="event-header">
-                    <svg class="event-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
-                        <line x1="12" y1="9" x2="12" y2="13"></line>
-                        <line x1="12" y1="17" x2="12.01" y2="17"></line>
-                    </svg>
-                    <span class="event-name">${event.name}</span>
-                </div>
-                <p class="event-description">${event.description}</p>
-            </div>
-        `,
-            )
-            .join("")
+
+    document.getElementById("location-name").textContent = document.getElementById("city").value + ' - ' + document.getElementById("country").value
+    document.getElementById("datetime").textContent = `${data.fecha_prediccion}`
+    document.getElementById("temperature").textContent = `${(parseInt(data.predicciones.T2M_K) - 273.15).toFixed(2)}°C`
+
+    duexttfm = parseInt(data.predicciones.DUEXTTFM)
+    nivel =""
+    if (duexttfm <= 0) {
+        visKm = 10;
+        nivel = "Alta";
+    } else if (duexttfm < 0.2) {
+        visKm = 8;
+        nivel = "Buena";
+    } else if (duexttfm < 0.5) {
+        visKm = 6;
+        nivel = "Moderada";
+    } else if (duexttfm < 0.8) {
+        visKm = 3;
+        nivel = "Baja";
     } else {
-        eventsContainer.classList.add("hidden")
+        visKm = 1;
+        nivel = "Muy baja";
     }
+
+    // const eventsContainer = document.getElementById("events-container")
+    // if (data.events.length > 0) {
+    //     eventsContainer.classList.remove("hidden")
+    //     eventsContainer.innerHTML = data.events
+    //         .map(
+    //             (event) => `
+    //         <div class="event-card ${event.severity}">
+    //             <div class="event-header">
+    //                 <svg class="event-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+    //                     <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+    //                     <line x1="12" y1="9" x2="12" y2="13"></line>
+    //                     <line x1="12" y1="17" x2="12.01" y2="17"></line>
+    //                 </svg>
+    //                 <span class="event-name">${event.name}</span>
+    //             </div>
+    //             <p class="event-description">${event.description}</p>
+    //         </div>
+    //     `,
+    //         )
+    //         .join("")
+    // } else {
+    //     eventsContainer.classList.add("hidden")
+    // }
 
     const metricsGrid = document.getElementById("metrics-grid")
     metricsGrid.innerHTML = `
@@ -468,7 +473,7 @@ function displayResults(data) {
                 </svg>
                 <span class="metric-label">Índice UV</span>
             </div>
-            <div class="metric-value">${data.metrics.uvIndex}</div>
+            <div class="metric-value">${data.predicciones.UVindex}</div>
         </div>
         <div class="metric-card">
             <div class="metric-header">
@@ -477,7 +482,7 @@ function displayResults(data) {
                 </svg>
                 <span class="metric-label">Humedad</span>
             </div>
-            <div class="metric-value">${data.metrics.humidity}%</div>
+            <div class="metric-value">${data.predicciones.QV2M}%</div>
         </div>
         <div class="metric-card">
             <div class="metric-header">
@@ -486,7 +491,7 @@ function displayResults(data) {
                 </svg>
                 <span class="metric-label">Viento</span>
             </div>
-            <div class="metric-value">${data.metrics.windSpeed} km/h</div>
+            <div class="metric-value">${(((data.predicciones.U2M)^2 + (data.predicciones.V2M)^2)^0.5).toFixed(2)} km/h</div>
         </div>
         <div class="metric-card">
             <div class="metric-header">
@@ -495,7 +500,7 @@ function displayResults(data) {
                 </svg>
                 <span class="metric-label">Punto de Rocío</span>
             </div>
-            <div class="metric-value">${data.metrics.dewPoint}°C</div>
+            <div class="metric-value">${(parseInt(data.predicciones.T2MDEW_K) - 273.15).toFixed(2)}°C</div>
         </div>
         <div class="metric-card">
             <div class="metric-header">
@@ -504,7 +509,7 @@ function displayResults(data) {
                 </svg>
                 <span class="metric-label">Presión</span>
             </div>
-            <div class="metric-value">${data.metrics.pressure} hPa</div>
+            <div class="metric-value">${parseInt(data.predicciones.SLP).toFixed(2)} hPa</div>
         </div>
         <div class="metric-card">
             <div class="metric-header">
@@ -514,7 +519,7 @@ function displayResults(data) {
                 </svg>
                 <span class="metric-label">Visibilidad</span>
             </div>
-            <div class="metric-value">${data.metrics.visibility} km</div>
+            <div class="metric-value">${nivel} km</div>
         </div>
     `
     // Estas líneas permanecen comentadas hasta que se defina la función drawMap

@@ -1,5 +1,7 @@
 # app.py
 from flask import Flask, request, render_template, jsonify
+from prediccion import predecir_clima
+
 
 app = Flask(__name__)
 
@@ -11,24 +13,28 @@ def inicio():
 def inicio_ingles():
     return render_template('indexEn.html')
 
-@app.route('/procesar', methods=['POST'])
+@app.route('/procesar', methods=['POST','GET'])
 def procesar():
     fecha = request.form.get("date")
     hora = request.form.get("time")
     lat = request.form.get("latitude")
     lon = request.form.get("longitude")
-    location_name = request.form.get("location_name") # Recibir nombre de ubicación de JS
+    location_name = request.form.get("ciudad")
 
-    print(f"✅ Datos recibidos en Flask:")
+    print(f"  Datos recibidos en Flask:")
     print(f"  Ubicación: {location_name}")
     print(f"  Coordenadas: ({lat}, {lon})")
     print(f"  Fecha/Hora: {fecha} a las {hora}")
-    
-    # ⚠️ A futuro: Aquí iría tu lógica de llamar a una API climática
-    
-    # Devuelve una respuesta JSON a JavaScript (para que la llamada fetch tenga éxito)
-    return jsonify({
-        "status": "success", 
-        "message": "Datos de pronóstico recibidos y procesados por Flask",
-        "requested_coords": {"lat": lat, "lon": lon}
-    }), 200
+
+    # Convertir a float/enteros
+    try:
+        lat = float(lat)
+        lon = float(lon)
+        hora = int(hora.split(":")[0])
+    except Exception:
+        return jsonify({"error": "Coordenadas u hora inválidas."}), 400
+
+    # Llamar a la predicción
+    resultado = predecir_clima(lat=lat, lon=lon, hora=hora, año=2025, fecha_pred=fecha, location_name=location_name)
+
+    return jsonify(resultado)

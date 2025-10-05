@@ -1,6 +1,8 @@
 import pandas as pd
 from sklearn.linear_model import LinearRegression
-from data import get_merra2_data  # tu función de descarga de MERRA2
+from data import get_merra2_data
+from datetime import date, timedelta
+from datauv import get_uv_data
 
 
 # --- Conversión de coordenadas geográficas a índices MERRA2 ---
@@ -49,25 +51,34 @@ def predecir_clima(lat, lon, hora=12, año=2025, fecha_pred=None):
 
         url = f"""https://goldsmr4.gesdisc.eosdis.nasa.gov/opendap/MERRA2/M2T1NXSLV.5.12.4/{año}/{mes}/MERRA2_400.tavg1_2d_slv_Nx.{año}{mes}{dia}.nc4.dap.nc4?dap4.ce=/lon[0:1:575];/lat[0:1:360];/time[0:1:23];/CLDTMP[0:1:23][0:1:360][0:1:575];/QV2M[0:1:23][0:1:360][0:1:575];/SLP[0:1:23][0:1:360][0:1:575];/T2M[0:1:23][0:1:360][0:1:575];/T2MDEW[0:1:23][0:1:360][0:1:575];/TQI[0:1:23][0:1:360][0:1:575];/TQL[0:1:23][0:1:360][0:1:575];/U2M[0:1:23][0:1:360][0:1:575];/V2M[0:1:23][0:1:360][0:1:575]"""
 
+        fecha_final = fecha + timedelta(days=4)
+
+        url_uv = f"""https://acdisc.gesdisc.eosdis.nasa.gov/opendap/HDF-EOS5/Aura_OMI_Level3/OMUVBd.003/{año}/OMI-Aura_L3-OMUVBd_{fecha.strftime('%Y')}m{fecha.strftime('%m')}{fecha.strftime('%d')}_v003-{fecha_final.strftime('%Y')}m{fecha_final.strftime('%m')}{fecha_final.strftime('%d')}t090001.he5.dap.nc4?dap4.ce=/lon[0:1:359];/lat[0:1:179];/UVindex[0:1:179][0:1:359]"""
+
         datos = get_merra2_data(
             url, lon_idx=lon_idx, lat_idx=lat_idx, time_idx=hora, fecha=fecha
         )
 
-        if datos:
-            registros.append(
-                {
-                    "fecha": fecha,
-                    "T2M_K": datos["T2M"],
-                    "T2MDEW_K": datos["T2MDEW"],
-                    "QV2M": datos["QV2M"],
-                    "SLP": datos["SLP"],
-                    "U2M": datos["U2M"],
-                    "V2M": datos["V2M"],
-                    "CLDTMP": datos["CLDTMP"],
-                    "TQI": datos["TQI"],
-                    "TQL": datos["TQL"],
-                }
-            )
+        # Obtener índice UV
+        datos_uv = get_uv_data(url_uv, lon_idx=lon_idx, lat_idx=lat_idx, fecha=fecha)
+
+        if datos and datos_uv:
+            datos.update(datos_uv)
+        registros.append(
+            {
+                "fecha": fecha,
+                "T2M_K": datos["T2M"],
+                "T2MDEW_K": datos["T2MDEW"],
+                "QV2M": datos["QV2M"],
+                "SLP": datos["SLP"],
+                "U2M": datos["U2M"],
+                "V2M": datos["V2M"],
+                "CLDTMP": datos["CLDTMP"],
+                "TQI": datos["TQI"],
+                "TQL": datos["TQL"],
+                "UVindex": datos["UVindex"], 
+            }
+        )
 
     if not registros:
         print("No se pudieron obtener datos de entrenamiento.")
@@ -77,7 +88,18 @@ def predecir_clima(lat, lon, hora=12, año=2025, fecha_pred=None):
     df["dia_del_año"] = df["fecha"].dt.dayofyear
 
     # --- Entrenar modelos lineales ---
-    variables = ["T2M_K", "T2MDEW_K", "QV2M", "SLP", "U2M", "V2M", "CLDTMP", "TQI", "TQL"]
+    variables = [
+        "T2M_K",
+        "T2MDEW_K",
+        "QV2M",
+        "SLP",
+        "U2M",
+        "V2M",
+        "CLDTMP",
+        "TQI",
+        "TQL",
+        "UVindex",
+    ]
     modelos = {}
     for var in variables:
         X_train = df[["dia_del_año"]]

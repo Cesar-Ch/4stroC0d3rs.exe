@@ -1,7 +1,7 @@
 import pandas as pd
 from sklearn.linear_model import LinearRegression
 from data import get_merra2_data
-from datetime import date, timedelta
+from datetime import date, timedelta, datetime
 from datauv import get_uv_data
 from datavis import get_vis_data
 
@@ -50,20 +50,25 @@ def predecir_clima(lat, lon, hora=12, año=2025, fecha_pred=None):
         mes = f"{fecha.month:02d}"
         dia = f"{fecha.day:02d}"
 
-        fecha_final = fecha + timedelta(days=4)
+        año_uv = int(fecha.year)
+        mes_uv = int(fecha.month)
+        dia_uv = int(fecha.day)
+        fecha_uv = datetime(año_uv, mes_uv, dia_uv)
+        fecha_final_uv = fecha_uv + timedelta(days=4)
 
         url = f"""https://goldsmr4.gesdisc.eosdis.nasa.gov/opendap/MERRA2/M2T1NXSLV.5.12.4/{año}/{mes}/MERRA2_400.tavg1_2d_slv_Nx.{año}{mes}{dia}.nc4.dap.nc4?dap4.ce=/lon[0:1:575];/lat[0:1:360];/time[0:1:23];/CLDTMP[0:1:23][0:1:360][0:1:575];/QV2M[0:1:23][0:1:360][0:1:575];/SLP[0:1:23][0:1:360][0:1:575];/T2M[0:1:23][0:1:360][0:1:575];/T2MDEW[0:1:23][0:1:360][0:1:575];/TQI[0:1:23][0:1:360][0:1:575];/TQL[0:1:23][0:1:360][0:1:575];/U2M[0:1:23][0:1:360][0:1:575];/V2M[0:1:23][0:1:360][0:1:575]"""
 
-        url_uv = f"""https://acdisc.gesdisc.eosdis.nasa.gov/opendap/HDF-EOS5/Aura_OMI_Level3/OMUVBd.003/{año}/OMI-Aura_L3-OMUVBd_{fecha.strftime('%Y')}m{fecha.strftime('%m')}{fecha.strftime('%d')}_v003-{fecha_final.strftime('%Y')}m{fecha_final.strftime('%m')}{fecha_final.strftime('%d')}t090001.he5.dap.nc4?dap4.ce=/lon[0:1:359];/lat[0:1:179];/UVindex[0:1:179][0:1:359]"""
+        url_uv = f"""https://acdisc.gesdisc.eosdis.nasa.gov/opendap/HDF-EOS5/Aura_OMI_Level3/OMUVBd.003/{fecha_uv.year}/OMI-Aura_L3-OMUVBd_{fecha_uv.strftime('%Y')}m{fecha_uv.strftime('%m')}{fecha_uv.strftime('%d')}_v003-{fecha_final_uv.strftime('%Y')}m{fecha_final_uv.strftime('%m')}{fecha_final_uv.strftime('%d')}t090001.he5.dap.nc4?dap4.ce=/lon[0:1:359];/lat[0:1:179];/UVindex[0:1:179][0:1:359]"""
 
         url_vis = f"""https://goldsmr4.gesdisc.eosdis.nasa.gov/opendap/MERRA2/M2T1NXADG.5.12.4/{año}/{mes}/MERRA2_400.tavg1_2d_adg_Nx.{año}{mes}{dia}.nc4.dap.nc4?dap4.ce=/lon[0:1:575];/lat[0:1:360];/time[0:1:23];/DUEXTTFM[0:1:23][0:1:360][0:1:575]"""
 
+
+        # Obtener índice UV
+        datos_uv = get_uv_data(url_uv, lon=lon, lat=lat, fecha=fecha)
+        
         datos = get_merra2_data(
             url, lon_idx=lon_idx, lat_idx=lat_idx, time_idx=hora, fecha=fecha
         )
-
-        # Obtener índice UV
-        datos_uv = get_uv_data(url_uv, lon=lon_idx, lat=lat_idx, fecha=fecha)
 
         # Obtener datos de visibilidad (aerosoles)
         datos_vis = get_vis_data(

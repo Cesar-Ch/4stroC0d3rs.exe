@@ -1,54 +1,54 @@
 const currentWeatherData = {
-  location: "Springfield, USA",
-  date: "2025-10-04",
-  time: "14:00",
-  temperature: 22,
-  events: [
-    {
-      name: "Tormenta eléctrica",
-      description: "Posibles rayos y fuertes lluvias durante la tarde.",
-      severity: "high", // puede ser 'low', 'medium' o 'high' para el color
+    location: "Springfield, USA",
+    date: "2025-10-04",
+    time: "14:00",
+    temperature: 22,
+    events: [
+        {
+            name: "Tormenta eléctrica",
+            description: "Posibles rayos y fuertes lluvias durante la tarde.",
+            severity: "high", // puede ser 'low', 'medium' o 'high' para el color
+        },
+        {
+            name: "Vientos fuertes",
+            description: "Ráfagas de hasta 60 km/h en zonas abiertas.",
+            severity: "medium",
+        },
+    ],
+    metrics: {
+        uvIndex: 6,
+        humidity: 72,
+        windSpeed: 18,
+        dewPoint: 16,
+        pressure: 1012,
+        visibility: 9,
     },
-    {
-      name: "Vientos fuertes",
-      description: "Ráfagas de hasta 60 km/h en zonas abiertas.",
-      severity: "medium",
+    coordinates: {
+        lat: 39.78,
+        lon: -89.64,
     },
-  ],
-  metrics: {
-    uvIndex: 6,
-    humidity: 72,
-    windSpeed: 18,
-    dewPoint: 16,
-    pressure: 1012,
-    visibility: 9,
-  },
-  coordinates: {
-    lat: 39.78,
-    lon: -89.64,
-  },
 }
 
 // Tab switching
 document.querySelectorAll(".tab-trigger").forEach((trigger) => {
-  trigger.addEventListener("click", () => {
-    const tabName = trigger.dataset.tab
+    trigger.addEventListener("click", () => {
+        const tabName = trigger.dataset.tab
 
-    document.querySelectorAll(".tab-trigger").forEach((t) => t.classList.remove("active"))
-    document.querySelectorAll(".tab-content").forEach((c) => c.classList.remove("active"))
+        document.querySelectorAll(".tab-trigger").forEach((t) => t.classList.remove("active"))
+        document.querySelectorAll(".tab-content").forEach((c) => c.classList.remove("active"))
 
-    trigger.classList.add("active")
-    document.getElementById(`${tabName}-tab`).classList.add("active")
-  })
+        trigger.classList.add("active")
+        document.getElementById(`${tabName}-tab`).classList.add("active")
+    })
 })
 
 //Para el reloj, hora fija
 
-  const timeInput = document.getElementById("time");
-  timeInput.addEventListener("change", () => {
+const timeInput = document.getElementById("time");
+timeInput.addEventListener("change", () => {
     const [hours] = timeInput.value.split(":");
     timeInput.value = `${hours.padStart(2, "0")}:00`;
-  });
+});
 
 
 //Map
@@ -91,7 +91,7 @@ async function geocodeLocation(city, country) {
         const response = await fetch(url, {
             // Requerimiento de Nominatim: Usar un User-Agent
             headers: {
-                'User-Agent': 'FutureWeatherApp/1.0 (contact@example.com)' 
+                'User-Agent': 'FutureWeatherApp/1.0 (contact@example.com)'
             }
         });
 
@@ -130,7 +130,7 @@ function updateCoordinates() {
         geocodeLocation(city, country).then(coords => {
             if (coords) {
                 // CORRECCIÓN: Usar toFixed(3) para 3 decimales
-                latitudeInput.value = coords.lat.toFixed(3); 
+                latitudeInput.value = coords.lat.toFixed(3);
                 longitudeInput.value = coords.lon.toFixed(3);
                 latitudeInput.placeholder = 'Ej: 40.7128';
                 longitudeInput.placeholder = 'Ej: -74.0060';
@@ -174,8 +174,8 @@ function initMapModal(centerCoords = [0, 0], zoomLevel = 2) {
 
     // Capa base de OpenStreetMap
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 18,
-      attribution: '© OpenStreetMap contributors'
+        maxZoom: 18,
+        attribution: '© OpenStreetMap contributors'
     }).addTo(mapModalInstance);
 
     // Si se centra en un punto específico (no el centro del mundo), añadir marcador
@@ -194,7 +194,7 @@ function initMapModal(centerCoords = [0, 0], zoomLevel = 2) {
         // Cargar info temporalmente
         const city = cityInput.value || 'Ubicación seleccionada';
         const country = countryInput.value || '';
-        
+
         mapModalInstance.tempLocation = { lat, lon, city, country };
         coordsModalDisplay.textContent = `Latitud: ${lat} | Longitud: ${lon}`;
         locationModalName.textContent = `${city}${country ? `, ${country}` : ''}`;
@@ -261,11 +261,11 @@ mapaBtn.addEventListener('click', () => {
     // Si tenemos coordenadas válidas, las usamos y aplicamos un zoom más cercano (e.g., zoom 10)
     if (!isNaN(centerLat) && !isNaN(centerLon)) {
         centerCoords = [centerLat, centerLon];
-        zoom = 10; 
+        zoom = 10;
     }
 
     // Inicializar el mapa con las coordenadas y el zoom
-    initMapModal(centerCoords, zoom); 
+    initMapModal(centerCoords, zoom);
 });
 
 // 6. Cerrar la modal
@@ -299,7 +299,7 @@ selectLocationBtn.addEventListener('click', () => {
         // Esto asegura que el Submit Handler use las coordenadas exactas del mapa.
         document.querySelectorAll(".tab-trigger").forEach((t) => t.classList.remove("active"))
         document.querySelectorAll(".tab-content").forEach((c) => c.classList.remove("active"))
-        
+
         document.querySelector('[data-tab="coordinates"]').classList.add("active")
         document.getElementById("coordinates-tab").classList.add("active")
 
@@ -315,124 +315,124 @@ selectLocationBtn.addEventListener('click', () => {
 // -----------------------------------------------------------------------------------
 
 document.getElementById("weather-form").addEventListener("submit", async (e) => {
-  e.preventDefault() // Evita el envío tradicional y permite a JS tomar el control.
+    e.preventDefault() // Evita el envío tradicional y permite a JS tomar el control.
 
-  const city = cityInput.value.trim()
-  const country = countryInput.value.trim()
-  let lat = latitudeInput.value.trim()
-  let lon = longitudeInput.value.trim()
-  const date = document.getElementById("date").value // Campo unificado
-  const time = document.getElementById("time").value // Campo unificado
-  
-  // 1. Determinar qué pestaña está activa
-  const activeTabElement = document.querySelector('.tab-trigger.active');
-  if (!activeTabElement) {
-      alert('Error interno: No se pudo determinar la pestaña activa.');
-      return;
-  }
-  const activeTab = activeTabElement.dataset.tab;
-  let finalLat = null;
-  let finalLon = null;
-  let locationName = '';
+    const city = cityInput.value.trim()
+    const country = countryInput.value.trim()
+    let lat = latitudeInput.value.trim()
+    let lon = longitudeInput.value.trim()
+    const date = document.getElementById("date").value // Campo unificado
+    const time = document.getElementById("time").value // Campo unificado
 
-  // 2. Lógica de validación y obtención de coordenadas
-  if (activeTab === 'location') {
-      // Pestaña 'Ciudad / País' activa. Intentar geocodificar.
-      if (!city || !country) {
-          alert('Por favor, introduce la Ciudad y el País.');
-          return;
-      }
-      
-      const coords = await geocodeLocation(city, country);
-      if (coords) {
-          finalLat = coords.lat;
-          finalLon = coords.lon;
-          locationName = `${city}, ${country}`;
-      } else {
-          alert('No se pudieron encontrar las coordenadas para la ubicación proporcionada. Por favor, revisa la ortografía o usa la pestaña de Coordenadas.');
-          return;
-      }
+    // 1. Determinar qué pestaña está activa
+    const activeTabElement = document.querySelector('.tab-trigger.active');
+    if (!activeTabElement) {
+        alert('Error interno: No se pudo determinar la pestaña activa.');
+        return;
+    }
+    const activeTab = activeTabElement.dataset.tab;
+    let finalLat = null;
+    let finalLon = null;
+    let locationName = '';
 
-  } else if (activeTab === 'coordinates') {
-      // Pestaña 'Coordenadas' activa. Usar los campos lat/lon.
-      if (!lat || !lon) {
-          alert('Por favor, introduce la Latitud y Longitud.');
-          return;
-      }
-      
-      finalLat = Number.parseFloat(lat);
-      finalLon = Number.parseFloat(lon);
-      
-      // CORRECCIÓN: Usar toFixed(3) para el nombre de la ubicación en los resultados
-      locationName = `Coordenadas: ${finalLat.toFixed(3)}, ${finalLon.toFixed(3)}`;
-  }
-  
-  // 3. Validar Fecha y Hora (ya son campos compartidos)
-  if (!date || !time) {
-    alert('Por favor, selecciona la Fecha y la Hora.');
-    return;
-  }
-  
-  // 4. Lógica de Envío (Reemplaza la Simulación)
-  
-  const formData = new FormData();
-  // Los datos clave que Flask necesita
-  formData.append('date', date);
-  formData.append('time', time);
-  formData.append('latitude', finalLat); 
-  formData.append('longitude', finalLon); 
-  formData.append('location_name', locationName); // Envía el nombre de ubicación procesado
+    // 2. Lógica de validación y obtención de coordenadas
+    if (activeTab === 'location') {
+        // Pestaña 'Ciudad / País' activa. Intentar geocodificar.
+        if (!city || !country) {
+            alert('Por favor, introduce la Ciudad y el País.');
+            return;
+        }
 
-  try {
-      // Llamada asíncrona a la ruta de Flask
-      const response = await fetch('/procesar', {
-          method: 'POST',
-          body: new URLSearchParams(formData) // Envía como formulario estándar
-      });
+        const coords = await geocodeLocation(city, country);
+        if (coords) {
+            finalLat = coords.lat;
+            finalLon = coords.lon;
+            locationName = `${city}, ${country}`;
+        } else {
+            alert('No se pudieron encontrar las coordenadas para la ubicación proporcionada. Por favor, revisa la ortografía o usa la pestaña de Coordenadas.');
+            return;
+        }
 
-      if (!response.ok) {
-          // Manejo de errores de HTTP
-          throw new Error(`Error en la respuesta del servidor: ${response.status}`);
-      }
+    } else if (activeTab === 'coordinates') {
+        // Pestaña 'Coordenadas' activa. Usar los campos lat/lon.
+        if (!lat || !lon) {
+            alert('Por favor, introduce la Latitud y Longitud.');
+            return;
+        }
 
-      // La respuesta de Flask (solo para confirmación o para datos reales a futuro)
-      const serverMessage = await response.json(); 
-      console.log("Respuesta del servidor Flask:", serverMessage);
-      
-      // MOCK DATA: Mantenemos el mock para la visualización, inyectando
-      // los datos de ubicación y tiempo obtenidos del formulario.
-      const mockDataToSend = {
-        ...currentWeatherData,
-        location: locationName, 
-        date: date,
-        time: time,
-        coordinates: { lat: finalLat, lon: finalLon },
-      };
+        finalLat = Number.parseFloat(lat);
+        finalLon = Number.parseFloat(lon);
+
+        // CORRECCIÓN: Usar toFixed(3) para el nombre de la ubicación en los resultados
+        locationName = `Coordenadas: ${finalLat.toFixed(3)}, ${finalLon.toFixed(3)}`;
+    }
+
+    // 3. Validar Fecha y Hora (ya son campos compartidos)
+    if (!date || !time) {
+        alert('Por favor, selecciona la Fecha y la Hora.');
+        return;
+    }
+
+    // 4. Lógica de Envío (Reemplaza la Simulación)
+
+    const formData = new FormData();
+    // Los datos clave que Flask necesita
+    formData.append('date', date);
+    formData.append('time', time);
+    formData.append('latitude', finalLat);
+    formData.append('longitude', finalLon);
+    formData.append('location_name', locationName); // Envía el nombre de ubicación procesado
+
+    try {
+        // Llamada asíncrona a la ruta de Flask
+        const response = await fetch('/procesar', {
+            method: 'POST',
+            body: new URLSearchParams(formData) // Envía como formulario estándar
+        });
+
+        if (!response.ok) {
+            // Manejo de errores de HTTP
+            throw new Error(`Error en la respuesta del servidor: ${response.status}`);
+        }
+
+        // La respuesta de Flask (solo para confirmación o para datos reales a futuro)
+        const serverMessage = await response.json();
+        console.log("Respuesta del servidor Flask:", serverMessage);
+
+        // MOCK DATA: Mantenemos el mock para la visualización, inyectando
+        // los datos de ubicación y tiempo obtenidos del formulario.
+        const mockDataToSend = {
+            ...currentWeatherData,
+            location: locationName,
+            date: date,
+            time: time,
+            coordinates: { lat: finalLat, lon: finalLon },
+        };
 
 
-      displayResults(mockDataToSend)
-  } catch (error) {
-    console.error('Error al enviar datos al servidor:', error);
-    alert('Ocurrió un error al buscar el pronóstico. Verifica que el servidor Flask esté corriendo y la ruta /procesar sea accesible.');
-  }
+        displayResults(mockDataToSend)
+    } catch (error) {
+        console.error('Error al enviar datos al servidor:', error);
+        alert('Ocurrió un error al buscar el pronóstico. Verifica que el servidor Flask esté corriendo y la ruta /procesar sea accesible.');
+    }
 
 })
 
 // -----------------------------------------------------------------------------------
 
 function displayResults(data) {
-  document.getElementById("results").classList.remove("hidden")
+    document.getElementById("results").classList.remove("hidden")
 
-  document.getElementById("location-name").textContent = data.location
-  document.getElementById("datetime").textContent = `${data.date} a las ${data.time}`
-  document.getElementById("temperature").textContent = `${data.temperature}°C`
-  
-  const eventsContainer = document.getElementById("events-container")
-  if (data.events.length > 0) {
-    eventsContainer.classList.remove("hidden")
-    eventsContainer.innerHTML = data.events
-      .map(
-        (event) => `
+    document.getElementById("location-name").textContent = data.location
+    document.getElementById("datetime").textContent = `${data.date} a las ${data.time}`
+    document.getElementById("temperature").textContent = `${data.temperature}°C`
+
+    const eventsContainer = document.getElementById("events-container")
+    if (data.events.length > 0) {
+        eventsContainer.classList.remove("hidden")
+        eventsContainer.innerHTML = data.events
+            .map(
+                (event) => `
             <div class="event-card ${event.severity}">
                 <div class="event-header">
                     <svg class="event-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -445,14 +445,14 @@ function displayResults(data) {
                 <p class="event-description">${event.description}</p>
             </div>
         `,
-      )
-      .join("")
-  } else {
-    eventsContainer.classList.add("hidden")
-  }
+            )
+            .join("")
+    } else {
+        eventsContainer.classList.add("hidden")
+    }
 
-  const metricsGrid = document.getElementById("metrics-grid")
-  metricsGrid.innerHTML = `
+    const metricsGrid = document.getElementById("metrics-grid")
+    metricsGrid.innerHTML = `
         <div class="metric-card">
             <div class="metric-header">
                 <svg class="metric-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -525,3 +525,20 @@ function displayResults(data) {
 
     document.getElementById("results").scrollIntoView({ behavior: "smooth" })
 }
+
+const switcher = document.getElementById('lang-switcher');
+const langBtn = document.getElementById('lang-btn');
+const langMenu = document.getElementById('lang-menu');
+
+langBtn.addEventListener('click', () => {
+    switcher.classList.toggle('open');
+});
+
+
+
+// Cerrar menú al hacer clic fuera
+document.addEventListener('click', (e) => {
+    if (!switcher.contains(e.target)) {
+        switcher.classList.remove('open');
+    }
+});

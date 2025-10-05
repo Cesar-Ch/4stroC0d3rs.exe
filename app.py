@@ -7,6 +7,10 @@ app = Flask(__name__)
 def inicio():
     return render_template('index.html')
 
+@app.route('/en')
+def inicio_ingles():
+    return render_template('indexEn.html')
+
 @app.route('/procesar', methods=['POST'])
 def procesar():
     fecha = request.form.get("date")

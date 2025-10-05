@@ -1,75 +1,87 @@
 import pandas as pd
-import numpy as np
-from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LinearRegression
-from sklearn.metrics import mean_squared_error, r2_score
-import matplotlib.pyplot as plt
+from data import get_merra2_data  # tu función de descarga de MERRA2
 
-# --- 1. Generar datos de ejemplo (12 meses) ---
-# En un escenario real, aquí usarías tu script para obtener los datos de 12 meses.
-latitud_fija = 40.71  # Ej: Nueva York
-longitud_fija = -74.00
+# --- Conversión de coordenadas geográficas a índices MERRA2 ---
+def coordenadas_a_indices(lat, lon):
+    """
+    Convierte latitud y longitud reales en índices de la grilla MERRA2.
+    La grilla MERRA2 usa:
+        - Latitudes: de -90 a 90 cada 0.5° → 361 puntos
+        - Longitudes: de -180 a 180 cada 0.625° → 576 puntos
+    """
+    lat_idx = int(round((lat + 90) / 0.5))
+    lon_idx = int(round((lon + 180) / 0.625))
+    return lat_idx, lon_idx
 
-# Creamos un rango de fechas de 1 año (365 días)
-fechas = pd.date_range(start='2024-01-01', end='2024-12-31', freq='D')
-n_muestras = len(fechas)
+# --- Función principal ---
+def predecir_clima(lat, lon, hora=12, año=2025, fecha_pred=None):
+    """
+    Predice variables climáticas para una fecha específica.
+    fecha_pred: str 'YYYY-MM-DD' o datetime
+    """
 
+    if fecha_pred is None:
+        print("Debes proporcionar la fecha a predecir.")
+        return
 
-tiempo_num = np.arange(n_muestras)
-temperatura_patron = 15 + 10 * np.sin(2 * np.pi * tiempo_num / 365)
-ruido = np.random.normal(0, 2, n_muestras)
-temperatura = temperatura_patron + ruido
+    fecha_pred = pd.to_datetime(fecha_pred)
+    print(f"\nPrediciendo clima en lat={lat}, lon={lon}, hora={hora}, fecha={fecha_pred.date()}...\n")
 
-# Crear el DataFrame con los datos simulados
-df = pd.DataFrame({
-    'fecha_hora': fechas,
-    'temperatura': temperatura,
-    'latitud': np.full(n_muestras, latitud_fija),
-    'longitud': np.full(n_muestras, longitud_fija)
-})
+    # Convertir coordenadas a índices
+    lat_idx, lon_idx = coordenadas_a_indices(lat, lon)
+    print(f"Índices de grilla: lat_idx={lat_idx}, lon_idx={lon_idx}")
 
-# --- 2. Preparación de los datos ---
-df['dia_del_año'] = df['fecha_hora'].dt.dayofyear
+    # Fechas de entrenamiento: todos los días anteriores al día a predecir
+    fechas_entrenamiento = pd.date_range(start=f"{año}-01-01", end=f"{año}-01-24", freq='D')
 
-# Separar las variables de entrada (X) y de salida (y)
-X = df[['dia_del_año']]
-y = df['temperatura']
+    registros = []
 
-# --- 3. División de los datos (Entrenamiento vs. Prueba) ---
-# Usar los primeros 11 meses para entrenar y el último mes (30 días) para probar
-# La notación `[:-30]` toma todos los elementos excepto los últimos 30.
-# La notación `[-30:]` toma solo los últimos 30 elementos.
-X_train = X[:-30]
-y_train = y[:-30]
+    for fecha in fechas_entrenamiento:
+        mes = f"{fecha.month:02d}"
+        dia = f"{fecha.day:02d}"
 
-X_test = X[-30:]
-y_test = y[-30:]
+        url = (
+            f"""https://goldsmr4.gesdisc.eosdis.nasa.gov/opendap/MERRA2/M2T1NXSLV.5.12.4/{año}/{mes}/MERRA2_400.tavg1_2d_slv_Nx.{año}{mes}{dia}.nc4.dap.nc4?dap4.ce=/lon[0:1:575];/lat[0:1:360];/time[0:1:23];/QV2M[0:1:23][0:1:360][0:1:575];/SLP[0:1:23][0:1:360][0:1:575];/T2M[0:1:23][0:1:360][0:1:575];/T2MDEW[0:1:23][0:1:360][0:1:575];/U2M[0:1:23][0:1:360][0:1:575];/V2M[0:1:23][0:1:360][0:1:575]"""
+        )
 
-print(f"Tamaño del conjunto de entrenamiento: {len(X_train)} muestras")
-print(f"Tamaño del conjunto de prueba: {len(X_test)} muestras")
+        datos = get_merra2_data(url, lon_idx=lon_idx, lat_idx=lat_idx, time_idx=hora, fecha=fecha)
 
-# --- 4. Entrenamiento del modelo ---
-modelo = LinearRegression()
-modelo.fit(X_train, y_train)
+        if datos:
+            registros.append({
+                'fecha': fecha,
+                'T2M_K': datos['T2M'],
+                'T2MDEW_K': datos['T2MDEW'],
+                'QV2M': datos['QV2M'],
+                'SLP': datos['SLP'],
+                'U2M': datos['U2M'],
+                'V2M': datos['V2M']
+            })
 
-# Hacer predicciones con el conjunto de prueba
-predicciones = modelo.predict(X_test)
+    if not registros:
+        print("No se pudieron obtener datos de entrenamiento.")
+        return
 
-# --- 5. Evaluación de la precisión del modelo ---
-mse = mean_squared_error(y_test, predicciones)
-r2 = r2_score(y_test, predicciones)
+    df = pd.DataFrame(registros)
+    df['dia_del_año'] = df['fecha'].dt.dayofyear
 
-print("\n--- Resultados de la Evaluación ---")
-print(f'Error Cuadrático Medio (MSE): {mse:.2f}')
-print(f'Coeficiente de Determinación (R²): {r2:.2f}')
+    # --- Entrenar modelos lineales ---
+    variables = ['T2M_K', 'T2MDEW_K', 'QV2M', 'SLP', 'U2M', 'V2M']
+    modelos = {}
+    for var in variables:
+        X_train = df[['dia_del_año']]
+        y_train = df[var]
+        modelo = LinearRegression()
+        modelo.fit(X_train, y_train)
+        modelos[var] = modelo
 
-# --- 6. Visualización de los resultados ---
-plt.figure(figsize=(10, 6))
-plt.scatter(X_test.index, y_test, color='blue', label='Valores Reales (último mes)')
-plt.plot(X_test.index, predicciones, color='red', linestyle='--', label='Predicciones del Modelo')
-plt.title('Predicción de Temperatura del Último Mes')
-plt.xlabel('Día de la muestra (índice)')
-plt.ylabel('Temperatura (°C)')
-plt.legend()
-plt.grid(True)
-plt.show()
+    # --- Predecir solo la fecha solicitada ---
+    dia_pred = pd.DataFrame({'dia_del_año': [fecha_pred.dayofyear]})
+    print(f"\n--- Predicciones para {fecha_pred.date()} ---")
+    for var, modelo in modelos.items():
+        pred = modelo.predict(dia_pred)[0]
+        print(f"{var}: {pred:.2f}")
+
+# --- Ejemplo de uso ---
+if __name__ == "__main__":
+    predecir_clima(lat=40.71, lon=-74.00, hora=10, año=2025, fecha_pred="2025-01-30")

@@ -62,16 +62,8 @@ Use a plain text editor (like VS Code, Notepad++, or nano) to create the file an
 
 ```bash
 machine urs.earthdata.nasa.gov
-    login YOUR_EDL_USERNAME
-    password YOUR_EDL_PASSWORD
-
-machine acdisc.gesdisc.eosdis.nasa.gov
-    login YOUR_EDL_USERNAME
-    password YOUR_EDL_PASSWORD
-
-machine goldsmr4.gesdisc.eosdis.nasa.gov
-    login YOUR_EDL_USERNAME
-    password YOUR_EDL_PASSWORD
+login YOUR_USERNAME
+password YOUR_PASSWORD
 ```
 #SECURITY NOTE: On Unix-like systems (Linux/macOS), it is critical to secure this file by setting restricted permissions:
 
@@ -88,12 +80,11 @@ Install Dependencies:
 ```bash
 pip install flask pandas scikit-learn netCDF4 requests numpy
 ```
-# Alternatively, use a requirements.txt file if available.
 
 # Run the Flask Application:
 
 ```bash
-python app.py
+flask --app app run 
 ```
 ## Access the Application:
 

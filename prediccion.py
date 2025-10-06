@@ -36,7 +36,7 @@ def predecir_clima(lat, lon, hora=12, año=2025, fecha_pred=None, location_name=
 
     # Fechas de entrenamiento
     fechas_entrenamiento = pd.date_range(
-        start=f"{año}-01-01", end=f"{año}-01-24", freq="D"
+        start=f"{año}-01-01", end=f"{año}-09-01", freq="D"
     )
     registros = []
 

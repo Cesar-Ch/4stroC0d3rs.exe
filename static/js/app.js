@@ -1,34 +1,3 @@
-const currentWeatherData = {
-    location: "Springfield, USA",
-    date: "2025-10-04",
-    time: "14:00",
-    temperature: 22,
-    events: [
-        {
-            name: "Tormenta eléctrica",
-            description: "Posibles rayos y fuertes lluvias durante la tarde.",
-            severity: "high", // puede ser 'low', 'medium' o 'high' para el color
-        },
-        {
-            name: "Vientos fuertes",
-            description: "Ráfagas de hasta 60 km/h en zonas abiertas.",
-            severity: "medium",
-        },
-    ],
-    metrics: {
-        uvIndex: 6,
-        humidity: 72,
-        windSpeed: 18,
-        dewPoint: 16,
-        pressure: 1012,
-        visibility: 9,
-    },
-    coordinates: {
-        lat: 39.78,
-        lon: -89.64,
-    },
-}
-
 // Tab switching
 document.querySelectorAll(".tab-trigger").forEach((trigger) => {
     trigger.addEventListener("click", () => {
